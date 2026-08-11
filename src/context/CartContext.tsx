@@ -51,6 +51,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('cart', JSON.stringify({ items, basketId }))
   }, [items, basketId])
 
+  // Sync basket after login
+  useEffect(() => {
+    if (username && basketId) {
+      syncBasket()
+    }
+  }, [username])
+
   const syncBasket = async () => {
     if (!basketId) return
     
@@ -90,37 +97,47 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       let currentBasketId = basketId
       
+      // Calculate new quantity
+      const existingItem = items.find(item => item.packageId === packageId)
+      const newQuantity = existingItem ? existingItem.quantity + 1 : 1
+      
       if (!currentBasketId) {
         const response = await fetch('/api/tebex/basket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             packageId, 
-            quantity: 1,
+            quantity: newQuantity,
             username: username
           }),
         })
         const data = await response.json()
         
-        if (data.success) {
-          currentBasketId = data.data.ident
-          setBasketId(currentBasketId)
-        } else {
+        if (!data.success) {
           throw new Error(data.error || 'Failed to create basket')
         }
+        
+        currentBasketId = data.data.ident
+        setBasketId(currentBasketId)
       } else {
-        await fetch('/api/tebex/basket', {
+        const response = await fetch('/api/tebex/basket', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             basketId: currentBasketId,
             packageId,
-            quantity: 1,
+            quantity: newQuantity,
             username: username
           }),
         })
+        const data = await response.json()
+        
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to update basket')
+        }
       }
       
+      // Update local state after successful API call
       setItems(prev => {
         const existing = prev.find(item => item.packageId === packageId)
         if (existing) {
@@ -158,7 +175,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true)
       
-      await fetch('/api/tebex/basket', {
+      const response = await fetch('/api/tebex/basket', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -167,6 +184,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           username: username 
         }),
       })
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to remove item')
+      }
       
       setItems(prev => prev.filter(item => item.packageId !== packageId))
       
@@ -197,7 +219,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true)
       
-      await fetch('/api/tebex/basket', {
+      const response = await fetch('/api/tebex/basket', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -207,6 +229,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
           username: username 
         }),
       })
+      const data = await response.json()
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update quantity')
+      }
       
       setItems(prev =>
         prev.map(item =>

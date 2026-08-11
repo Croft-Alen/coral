@@ -6,22 +6,31 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const basketId = searchParams.get('basketId')
-    
+
     if (!basketId) {
       return NextResponse.json(
         { success: false, error: 'basketId is required' },
         { status: 400 }
       )
     }
-    
+
     const client = getTebexServerClient()
+
+    // getBasket only takes 1 argument
     const basket = await client.getBasket(basketId)
-    
-    return NextResponse.json({ success: true, data: basket })
+
+    return NextResponse.json({
+      success: true,
+      data: basket,
+    })
   } catch (error: any) {
     console.error('Error fetching basket:', error)
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch basket' },
+      {
+        success: false,
+        error: error.message || 'Failed to fetch basket',
+      },
       { status: 500 }
     )
   }
@@ -31,30 +40,40 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const client = getTebexServerClient()
-    const { packageId, quantity = 1, username } = await request.json()
-    
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
-    
-    // Create basket with username
-    const basket = await client.createBasket({
-      completeUrl: `${siteUrl}/store/complete`,
-      cancelUrl: `${siteUrl}/store`,
-      username: username,
+    const {
+      packageId,
+      quantity = 1,
+      username,
+    } = await request.json()
+
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
+
+    const basket = await client.createBasket(
+      `${siteUrl}/store/complete`,
+      `${siteUrl}/store`,
+      username
+    )
+
+    await client.addPackageToBasket(
+      basket.ident,
+      packageId,
+      quantity,
+      username
+    )
+
+    return NextResponse.json({
+      success: true,
+      data: basket,
     })
-    
-    // Add package to basket with username
-    await client.addPackageToBasket({
-      basketIdent: basket.ident,
-      packageId: packageId,
-      quantity: quantity,
-      username: username,
-    })
-    
-    return NextResponse.json({ success: true, data: basket })
   } catch (error: any) {
     console.error('Error creating basket:', error)
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create basket' },
+      {
+        success: false,
+        error: error.message || 'Failed to create basket',
+      },
       { status: 500 }
     )
   }
@@ -64,16 +83,21 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const client = getTebexServerClient()
-    const { basketId, packageId, quantity, username } = await request.json()
+    const {
+      basketId,
+      packageId,
+      quantity,
+    } = await request.json()
 
-    await client.updateQuantity({
-      basketIdent: basketId,
-      packageId: packageId,
-      quantity: quantity,
-      username: username,
+    await client.updateQuantity(
+      basketId,
+      packageId,
+      quantity
+    )
+
+    return NextResponse.json({
+      success: true,
     })
-
-    return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error updating basket:', error)
 
@@ -91,15 +115,19 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const client = getTebexServerClient()
-    const { basketId, packageId, username } = await request.json()
+    const {
+      basketId,
+      packageId,
+    } = await request.json()
 
-    await client.removePackage({
-      basketIdent: basketId,
-      packageId: packageId,
-      username: username,
+    await client.removePackage(
+      basketId,
+      packageId
+    )
+
+    return NextResponse.json({
+      success: true,
     })
-
-    return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error removing from basket:', error)
 
