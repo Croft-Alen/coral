@@ -5,7 +5,6 @@ import { FaShoppingCart, FaInfoCircle } from 'react-icons/fa'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useCart } from '@/context/CartContext'
-import { useAuth } from '@/context/AuthContext'
 
 interface ProductCardProps {
   product: {
@@ -21,7 +20,6 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const { addItem } = useCart()
-  const { username } = useAuth()
 
   // Safe price formatting
   const formattedPrice = typeof product.price === 'number' 
@@ -30,7 +28,11 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleAddToCart = async () => {
     setIsAdding(true)
-    await addItem(product.id, product.name, typeof product.price === 'number' ? product.price : 0)
+    try {
+      await addItem(product.id, product.name, typeof product.price === 'number' ? product.price : 0)
+    } catch (error) {
+      console.error('Error adding to cart:', error)
+    }
     setIsAdding(false)
   }
 
@@ -103,7 +105,7 @@ export function ProductCard({ product }: ProductCardProps) {
               <h2 className="text-2xl font-bold text-text-heading">{product.name || 'Unnamed Product'}</h2>
               <p className="text-xl font-bold text-brand">${formattedPrice}</p>
             </div>
-</div>
+          </div>
           <div
             className="text-text-body text-base"
             dangerouslySetInnerHTML={{
@@ -113,7 +115,6 @@ export function ProductCard({ product }: ProductCardProps) {
             }}
           />
         </div>
-
       </Modal>
     </>
   )

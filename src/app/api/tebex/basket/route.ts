@@ -33,22 +33,22 @@ export async function POST(request: Request) {
     const client = getTebexServerClient()
     const { packageId, quantity = 1, username } = await request.json()
     
-    // Use hardcoded URL for testing, or get from env with fallback
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
     
-    console.log('🌐 Site URL:', siteUrl)
+    // Create basket with correct parameters
+    const basket = await client.createBasket(
+      `${siteUrl}/store/complete`,
+      `${siteUrl}/store`,
+      username
+    )
     
-    const basket = await client.createBasket({
-      completeUrl: `${siteUrl}/store/complete`,
-      cancelUrl: `${siteUrl}/store`,
-      username: username,
-    })
-    
-    await client.addPackageToBasket({
-      basketIdent: basket.ident,
-      packageId: packageId,
-      quantity: quantity,
-    })
+    // Add package to basket
+    await client.addPackageToBasket(
+      basket.ident,
+      packageId,
+      quantity,
+      username
+    )
     
     return NextResponse.json({ success: true, data: basket })
   } catch (error: any) {
@@ -66,11 +66,12 @@ export async function PUT(request: Request) {
     const client = getTebexServerClient()
     const { basketId, packageId, quantity } = await request.json()
     
-    await client.updateBasketItemQuantity({
-      basketIdent: basketId,
-      packageId: packageId,
-      quantity: quantity,
-    })
+    // Use the correct method name
+    await client.updateQuantityInBasket(
+      basketId,
+      packageId,
+      quantity
+    )
     
     return NextResponse.json({ success: true })
   } catch (error: any) {
@@ -88,10 +89,11 @@ export async function DELETE(request: Request) {
     const client = getTebexServerClient()
     const { basketId, packageId } = await request.json()
     
-    await client.removePackageFromBasket({
-      basketIdent: basketId,
-      packageId: packageId,
-    })
+    // Use the correct method name
+    await client.removePackageFromBasket(
+      basketId,
+      packageId
+    )
     
     return NextResponse.json({ success: true })
   } catch (error: any) {

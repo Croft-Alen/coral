@@ -1,33 +1,38 @@
-// src/context/AuthContext.tsx
 'use client'
 
-import { createContext, useContext, useState, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 interface AuthContextType {
+  username: string | null
   isLoggedIn: boolean
-  user: any
-  login: (user: any) => void
+  login: (username: string) => void
   logout: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [user, setUser] = useState(null)
+  const [username, setUsername] = useState<string | null>(null)
 
-  const login = (userData: any) => {
-    setUser(userData)
-    setIsLoggedIn(true)
+  useEffect(() => {
+    const saved = localStorage.getItem('mc_username')
+    if (saved) {
+      setUsername(saved)
+    }
+  }, [])
+
+  const login = (name: string) => {
+    setUsername(name)
+    localStorage.setItem('mc_username', name)
   }
 
   const logout = () => {
-    setUser(null)
-    setIsLoggedIn(false)
+    setUsername(null)
+    localStorage.removeItem('mc_username')
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, user, login, logout }}>
+    <AuthContext.Provider value={{ username, isLoggedIn: !!username, login, logout }}>
       {children}
     </AuthContext.Provider>
   )

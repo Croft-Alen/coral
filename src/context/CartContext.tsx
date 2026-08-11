@@ -1,7 +1,6 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useAuth } from './AuthContext'
 
 interface CartItem {
   id: string
@@ -32,7 +31,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [basketId, setBasketId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const { username } = useAuth()
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -51,13 +49,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('cart', JSON.stringify({ items, basketId }))
   }, [items, basketId])
 
-  // Sync basket with Tebex when username changes (login/logout)
-  useEffect(() => {
-    if (username) {
-      syncBasket()
-    }
-  }, [username])
-
   const syncBasket = async () => {
     if (!basketId) return
     
@@ -67,7 +58,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
       
       if (data.success && data.data) {
-        // Update local items from Tebex basket
         const tebexItems = data.data.packages || []
         const syncedItems = tebexItems.map((pkg: any) => ({
           id: pkg.id.toString(),
@@ -92,16 +82,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       let currentBasketId = basketId
       
-      // If no basket exists, create one
       if (!currentBasketId) {
         const response = await fetch('/api/tebex/basket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            packageId, 
-            quantity: 1,
-            username 
-          }),
+          body: JSON.stringify({ packageId, quantity: 1 }),
         })
         const data = await response.json()
         
@@ -112,7 +97,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
           throw new Error('Failed to create basket')
         }
       } else {
-        // Add to existing basket
         await fetch('/api/tebex/basket', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -124,7 +108,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
         })
       }
       
-      // Update local state
       setItems(prev => {
         const existing = prev.find(item => item.packageId === packageId)
         if (existing) {
@@ -166,7 +149,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       setItems(prev => prev.filter(item => item.packageId !== packageId))
       
-      // If cart is empty, clear basketId
       if (items.length === 1) {
         setBasketId(null)
         localStorage.removeItem('cart')
