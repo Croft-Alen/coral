@@ -36,30 +36,43 @@ export async function GET(request: Request) {
   }
 }
 
+
 // POST - Create basket
 export async function POST(request: Request) {
   try {
     const client = getTebexServerClient()
+
     const {
       packageId,
       quantity = 1,
       username,
     } = await request.json()
 
+    if (!username) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Username is required',
+        },
+        { status: 400 }
+      )
+    }
+
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
 
-    const basket = await client.createBasket(
+    // Create Minecraft basket
+    const basket = await client.createMinecraftBasket(
+      username,
       `${siteUrl}/store/complete`,
-      `${siteUrl}/store`,
-      username
+      `${siteUrl}/store`
     )
 
+    // Add package to basket
     await client.addPackageToBasket(
       basket.ident,
       packageId,
-      quantity,
-      username
+      quantity
     )
 
     return NextResponse.json({
@@ -78,6 +91,8 @@ export async function POST(request: Request) {
     )
   }
 }
+
+
 
 // PUT - Update basket item quantity
 export async function PUT(request: Request) {
