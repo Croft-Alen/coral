@@ -35,20 +35,20 @@ export async function POST(request: Request) {
     
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
     
-    // Create basket with correct parameters
-    const basket = await client.createBasket(
-      `${siteUrl}/store/complete`,
-      `${siteUrl}/store`,
-      username
-    )
+    // Create basket with username
+    const basket = await client.createBasket({
+      completeUrl: `${siteUrl}/store/complete`,
+      cancelUrl: `${siteUrl}/store`,
+      username: username,
+    })
     
-    // Add package to basket
-    await client.addPackageToBasket(
-      basket.ident,
-      packageId,
-      quantity,
-      username
-    )
+    // Add package to basket with username
+    await client.addPackageToBasket({
+      basketIdent: basket.ident,
+      packageId: packageId,
+      quantity: quantity,
+      username: username,
+    })
     
     return NextResponse.json({ success: true, data: basket })
   } catch (error: any) {
@@ -60,18 +60,18 @@ export async function POST(request: Request) {
   }
 }
 
-
 // PUT - Update basket item quantity
 export async function PUT(request: Request) {
   try {
     const client = getTebexServerClient()
-    const { basketId, packageId, quantity } = await request.json()
+    const { basketId, packageId, quantity, username } = await request.json()
 
-    await client.updateQuantity(
-      basketId,
-      packageId,
-      quantity
-    )
+    await client.updateQuantity({
+      basketIdent: basketId,
+      packageId: packageId,
+      quantity: quantity,
+      username: username,
+    })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
@@ -91,12 +91,13 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const client = getTebexServerClient()
-    const { basketId, packageId } = await request.json()
+    const { basketId, packageId, username } = await request.json()
 
-    await client.removePackage(
-      basketId,
-      packageId
-    )
+    await client.removePackage({
+      basketIdent: basketId,
+      packageId: packageId,
+      username: username,
+    })
 
     return NextResponse.json({ success: true })
   } catch (error: any) {
@@ -111,4 +112,3 @@ export async function DELETE(request: Request) {
     )
   }
 }
-

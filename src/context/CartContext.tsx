@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useAuth } from './AuthContext'
 
 interface CartItem {
   id: string
@@ -31,6 +32,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
   const [basketId, setBasketId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const { username } = useAuth()
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -77,6 +79,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }
 
   const addItem = async (packageId: number, name: string, price: number, image?: string) => {
+    // Check if user is logged in
+    if (!username) {
+      alert('Please login first to add items to your cart.')
+      return
+    }
+
     try {
       setIsLoading(true)
       
@@ -86,7 +94,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const response = await fetch('/api/tebex/basket', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ packageId, quantity: 1 }),
+          body: JSON.stringify({ 
+            packageId, 
+            quantity: 1,
+            username: username
+          }),
         })
         const data = await response.json()
         
@@ -94,7 +106,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           currentBasketId = data.data.ident
           setBasketId(currentBasketId)
         } else {
-          throw new Error('Failed to create basket')
+          throw new Error(data.error || 'Failed to create basket')
         }
       } else {
         await fetch('/api/tebex/basket', {
@@ -104,6 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             basketId: currentBasketId,
             packageId,
             quantity: 1,
+            username: username
           }),
         })
       }
@@ -137,6 +150,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeItem = async (packageId: number) => {
     if (!basketId) return
+    if (!username) {
+      alert('Please login first.')
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -144,7 +161,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await fetch('/api/tebex/basket', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketId, packageId }),
+        body: JSON.stringify({ 
+          basketId, 
+          packageId,
+          username: username 
+        }),
       })
       
       setItems(prev => prev.filter(item => item.packageId !== packageId))
@@ -168,6 +189,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     
     if (!basketId) return
+    if (!username) {
+      alert('Please login first.')
+      return
+    }
     
     try {
       setIsLoading(true)
@@ -175,7 +200,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       await fetch('/api/tebex/basket', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ basketId, packageId, quantity }),
+        body: JSON.stringify({ 
+          basketId, 
+          packageId, 
+          quantity,
+          username: username 
+        }),
       })
       
       setItems(prev =>
