@@ -60,24 +60,28 @@ export async function POST(request: Request) {
   }
 }
 
+
 // PUT - Update basket item quantity
 export async function PUT(request: Request) {
   try {
     const client = getTebexServerClient()
     const { basketId, packageId, quantity } = await request.json()
-    
-    // Use the correct method name
-    await client.updateQuantityInBasket(
+
+    await client.updateQuantity(
       basketId,
       packageId,
       quantity
     )
-    
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error updating basket:', error)
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update basket' },
+      {
+        success: false,
+        error: error.message || 'Failed to update basket',
+      },
       { status: 500 }
     )
   }
@@ -88,19 +92,23 @@ export async function DELETE(request: Request) {
   try {
     const client = getTebexServerClient()
     const { basketId, packageId } = await request.json()
-    
-    // Use the correct method name
-    await client.removePackageFromBasket(
+
+    await client.removePackage(
       basketId,
       packageId
     )
-    
+
     return NextResponse.json({ success: true })
   } catch (error: any) {
     console.error('Error removing from basket:', error)
+
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to remove from basket' },
+      {
+        success: false,
+        error: error.message || 'Failed to remove item from basket',
+      },
       { status: 500 }
     )
   }
 }
+
