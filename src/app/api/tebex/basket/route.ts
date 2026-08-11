@@ -92,23 +92,57 @@ export async function POST(request: Request) {
   }
 }
 
-
-
-// PUT - Update basket item quantity
+// PUT - Update basket item quantity OR add package if it doesn't exist
 export async function PUT(request: Request) {
   try {
     const client = getTebexServerClient()
+
     const {
       basketId,
       packageId,
       quantity,
     } = await request.json()
 
-    await client.updateQuantity(
-      basketId,
-      packageId,
-      quantity
+    if (!basketId || !packageId || !quantity) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'basketId, packageId and quantity are required',
+        },
+        { status: 400 }
+      )
+    }
+
+    // Get the current basket to check whether this package already exists
+    const basket = await client.getBasket(basketId)
+
+    const existingPackage = basket.packages?.find(
+      (pkg: any) => pkg.id === packageId
     )
+
+    if (existingPackage) {
+      // Package already exists → update quantity
+      await client.updateQuantity(
+        basketId,
+        packageId,
+        quantity
+      )
+
+      console.log(
+        `✅ Updated package ${packageId} quantity to ${quantity}`
+      )
+    } else {
+      // Package doesn't exist → add it to the existing basket
+      await client.addPackageToBasket(
+        basketId,
+        packageId,
+        quantity
+      )
+
+      console.log(
+        `✅ Added package ${packageId} to existing basket ${basketId}`
+      )
+    }
 
     return NextResponse.json({
       success: true,
@@ -120,11 +154,13 @@ export async function PUT(request: Request) {
       {
         success: false,
         error: error.message || 'Failed to update basket',
+        details: error.body || null,
       },
-      { status: 500 }
+      { status: error.status || 500 }
     )
   }
 }
+
 
 // DELETE - Remove item from basket
 export async function DELETE(request: Request) {
