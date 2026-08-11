@@ -1,0 +1,275 @@
+'use client'
+
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { useAuth } from './AuthContext'
+
+interface CartItem {
+  id: string
+  packageId: number
+  name: string
+  price: number
+  quantity: number
+  image?: string
+}
+
+interface CartContextType {
+  items: CartItem[]
+  basketId: string | null
+  isLoading: boolean
+  addItem: (packageId: number, name: string, price: number, image?: string) => Promise<void>
+  removeItem: (packageId: number) => Promise<void>
+  updateQuantity: (packageId: number, quantity: number) => Promise<void>
+  clearCart: () => void
+  getTotal: () => number
+  getItemCount: () => number
+  checkout: () => Promise<string | null>
+  syncBasket: () => Promise<void>
+}
+
+const CartContext = createContext<CartContextType | undefined>(undefined)
+
+export function CartProvider({ children }: { children: ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([])
+  const [basketId, setBasketId] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { username } = useAuth()
+
+  // Load cart from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('cart')
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved)
+        setItems(parsed.items || [])
+        setBasketId(parsed.basketId || null)
+      } catch (e) {}
+    }
+  }, [])
+
+  // Save cart to localStorage
+  useEffect(() => {
+    localStorage.setItem('cart', JSON.stringify({ items, basketId }))
+  }, [items, basketId])
+
+  // Sync basket with Tebex when username changes (login/logout)
+  useEffect(() => {
+    if (username) {
+      syncBasket()
+    }
+  }, [username])
+
+  const syncBasket = async () => {
+    if (!basketId) return
+    
+    try {
+      setIsLoading(true)
+      const response = await fetch(`/api/tebex/basket?basketId=${basketId}`)
+      const data = await response.json()
+      
+      if (data.success && data.data) {
+        // Update local items from Tebex basket
+        const tebexItems = data.data.packages || []
+        const syncedItems = tebexItems.map((pkg: any) => ({
+          id: pkg.id.toString(),
+          packageId: pkg.id,
+          name: pkg.name,
+          price: pkg.price || 0,
+          quantity: pkg.quantity || 1,
+          image: pkg.image || pkg.icon,
+        }))
+        setItems(syncedItems)
+      }
+    } catch (error) {
+      console.error('Error syncing basket:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const addItem = async (packageId: number, name: string, price: number, image?: string) => {
+    try {
+      setIsLoading(true)
+      
+      let currentBasketId = basketId
+      
+      // If no basket exists, create one
+      if (!currentBasketId) {
+        const response = await fetch('/api/tebex/basket', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            packageId, 
+            quantity: 1,
+            username 
+          }),
+        })
+        const data = await response.json()
+        
+        if (data.success) {
+          currentBasketId = data.data.ident
+          setBasketId(currentBasketId)
+        } else {
+          throw new Error('Failed to create basket')
+        }
+      } else {
+        // Add to existing basket
+        await fetch('/api/tebex/basket', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            basketId: currentBasketId,
+            packageId,
+            quantity: 1,
+          }),
+        })
+      }
+      
+      // Update local state
+      setItems(prev => {
+        const existing = prev.find(item => item.packageId === packageId)
+        if (existing) {
+          return prev.map(item =>
+            item.packageId === packageId
+              ? { ...item, quantity: item.quantity + 1 }
+              : item
+          )
+        }
+        return [...prev, { 
+          id: Date.now().toString(), 
+          packageId, 
+          name, 
+          price, 
+          quantity: 1,
+          image 
+        }]
+      })
+      
+    } catch (error) {
+      console.error('Error adding item:', error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const removeItem = async (packageId: number) => {
+    if (!basketId) return
+    
+    try {
+      setIsLoading(true)
+      
+      await fetch('/api/tebex/basket', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ basketId, packageId }),
+      })
+      
+      setItems(prev => prev.filter(item => item.packageId !== packageId))
+      
+      // If cart is empty, clear basketId
+      if (items.length === 1) {
+        setBasketId(null)
+        localStorage.removeItem('cart')
+      }
+      
+    } catch (error) {
+      console.error('Error removing item:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const updateQuantity = async (packageId: number, quantity: number) => {
+    if (quantity < 1) {
+      await removeItem(packageId)
+      return
+    }
+    
+    if (!basketId) return
+    
+    try {
+      setIsLoading(true)
+      
+      await fetch('/api/tebex/basket', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ basketId, packageId, quantity }),
+      })
+      
+      setItems(prev =>
+        prev.map(item =>
+          item.packageId === packageId ? { ...item, quantity } : item
+        )
+      )
+      
+    } catch (error) {
+      console.error('Error updating quantity:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const clearCart = () => {
+    setItems([])
+    setBasketId(null)
+    localStorage.removeItem('cart')
+  }
+
+  const getTotal = () => {
+    return items.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  }
+
+  const getItemCount = () => {
+    return items.reduce((sum, item) => sum + item.quantity, 0)
+  }
+
+  const checkout = async (): Promise<string | null> => {
+    if (!basketId) return null
+    
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/tebex/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ basketId }),
+      })
+      const data = await response.json()
+      
+      if (data.success) {
+        return data.checkoutUrl
+      }
+      return null
+    } catch (error) {
+      console.error('Error during checkout:', error)
+      return null
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <CartContext.Provider value={{
+      items,
+      basketId,
+      isLoading,
+      addItem,
+      removeItem,
+      updateQuantity,
+      clearCart,
+      getTotal,
+      getItemCount,
+      checkout,
+      syncBasket,
+    }}>
+      {children}
+    </CartContext.Provider>
+  )
+}
+
+export function useCart() {
+  const context = useContext(CartContext)
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider')
+  }
+  return context
+}

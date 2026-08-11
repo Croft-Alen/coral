@@ -1,0 +1,27 @@
+{
+  "siteName": "GroveMc",
+  "siteUrl": "https://grovemc.net",
+  "serverIp": "PLAY.GROVEMC.NET",
+  "serverBedrockIp": "bedrock.grovemc.net",
+  "serverBedrockPort": "19132",
+  "discordUrl": "https://discord.gg/grovemc",
+  "discordInviteCode": "GROVEMC",
+  "logo": "/images/logo.png",
+  "favicon": "/favicon.ico",
+  "currency": "USD",
+  "currencySymbol": "$",
+  "playersOnline": "752 Players Online",
+  "colors": {
+    "brand": "#FA4949",
+    "brandDark": "#D93A3A",
+    "brandLight": "#FB6A6A",
+    "pageBg": "#101010",
+    "cardBg": "#161616",
+    "textHeading": "#FFFFFF",
+    "textBody": "#D6DAE2",
+    "textMuted": "#8B93A3",
+    "border": "#1D1D1D"
+  },
+  "heroBackground": "/images/hero-bg.webp",
+  "storeHeroBackground": "/images/hero-bg.webp"
+}

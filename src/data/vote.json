@@ -1,0 +1,28 @@
+{
+  "voteLinks": [
+    {
+      "id": "1",
+      "siteName": "TopG.org",
+      "url": "https://topg.org/server/grovemc",
+      "description": "Vote on TopG.org"
+    },
+    {
+      "id": "2",
+      "siteName": "Minecraft Server List",
+      "url": "https://minecraft-server-list.com/server/grovemc",
+      "description": "Vote on Minecraft Server List"
+    },
+    {
+      "id": "3",
+      "siteName": "Top Minecraft Servers",
+      "url": "https://topminecraftservers.org/server/grovemc",
+      "description": "Vote on Top Minecraft Servers"
+    },
+    {
+      "id": "4",
+      "siteName": "Minecraft MP",
+      "url": "https://minecraft-mp.com/server/grovemc",
+      "description": "Vote on Minecraft MP"
+    }
+  ]
+}

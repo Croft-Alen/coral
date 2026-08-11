@@ -1,0 +1,40 @@
+{
+  "staff": [
+    {
+      "id": "1",
+      "name": "Notch",
+      "role": "Owner",
+      "avatar": "/images/staff/notch.png"
+    },
+    {
+      "id": "2",
+      "name": "Jeb",
+      "role": "Owner",
+      "avatar": "/images/staff/jeb.png"
+    },
+    {
+      "id": "3",
+      "name": "Dinnerbone",
+      "role": "Admin",
+      "avatar": "/images/staff/dinnerbone.png"
+    },
+    {
+      "id": "4",
+      "name": "Grumm",
+      "role": "Moderator",
+      "avatar": "/images/staff/grumm.png"
+    },
+    {
+      "id": "5",
+      "name": "Searge",
+      "role": "Helper",
+      "avatar": "/images/staff/searge.png"
+    },
+    {
+      "id": "6",
+      "name": "Mollstam",
+      "role": "Helper",
+      "avatar": "/images/staff/mollstam.png"
+    }
+  ]
+}
