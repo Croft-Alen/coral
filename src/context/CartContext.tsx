@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useAuth } from './AuthContext'
+import { toast } from 'react-toastify'
 
 interface CartItem {
   id: string
@@ -88,7 +89,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = async (packageId: number, name: string, price: number, image?: string) => {
     // Check if user is logged in
     if (!username) {
-      alert('Please login first to add items to your cart.')
+      toast.warning('Please login first to add items to your cart!')
       return
     }
 
@@ -157,8 +158,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }]
       })
       
+      // Show success toast
+      toast.success(`${name} added to cart! 🛒`)
+      
     } catch (error) {
       console.error('Error adding item:', error)
+      toast.error('Failed to add item to cart. Please try again.')
       throw error
     } finally {
       setIsLoading(false)
@@ -168,7 +173,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const removeItem = async (packageId: number) => {
     if (!basketId) return
     if (!username) {
-      alert('Please login first.')
+      toast.warning('Please login first.')
       return
     }
     
@@ -190,6 +195,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error || 'Failed to remove item')
       }
       
+      const removedItem = items.find(item => item.packageId === packageId)
       setItems(prev => prev.filter(item => item.packageId !== packageId))
       
       if (items.length === 1) {
@@ -197,8 +203,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('cart')
       }
       
+      if (removedItem) {
+        toast.info(`${removedItem.name} removed from cart`)
+      }
+      
     } catch (error) {
       console.error('Error removing item:', error)
+      toast.error('Failed to remove item from cart')
     } finally {
       setIsLoading(false)
     }
@@ -212,7 +223,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     
     if (!basketId) return
     if (!username) {
-      alert('Please login first.')
+      toast.warning('Please login first.')
       return
     }
     
@@ -243,6 +254,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
     } catch (error) {
       console.error('Error updating quantity:', error)
+      toast.error('Failed to update quantity')
     } finally {
       setIsLoading(false)
     }
@@ -252,6 +264,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems([])
     setBasketId(null)
     localStorage.removeItem('cart')
+    toast.info('Cart cleared')
   }
 
   const getTotal = () => {
@@ -280,6 +293,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return null
     } catch (error) {
       console.error('Error during checkout:', error)
+      toast.error('Failed to start checkout. Please try again.')
       return null
     } finally {
       setIsLoading(false)

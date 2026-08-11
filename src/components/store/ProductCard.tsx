@@ -2,9 +2,11 @@
 
 import { useState } from 'react'
 import { FaShoppingCart, FaInfoCircle } from 'react-icons/fa'
+import { toast } from 'react-toastify'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useCart } from '@/context/CartContext'
+import { useAuth } from '@/context/AuthContext'
 
 interface ProductCardProps {
   product: {
@@ -20,17 +22,24 @@ export function ProductCard({ product }: ProductCardProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isAdding, setIsAdding] = useState(false)
   const { addItem } = useCart()
+  const { username } = useAuth()
 
-  // Safe price formatting
   const formattedPrice = typeof product.price === 'number' 
     ? product.price.toFixed(2) 
     : '0.00'
 
   const handleAddToCart = async () => {
+    if (!username) {
+      toast.warning('Please login first to add items to your cart!')
+      return
+    }
+
     setIsAdding(true)
     try {
       await addItem(product.id, product.name, typeof product.price === 'number' ? product.price : 0)
+      toast.success(`${product.name} added to cart! 🛒`)
     } catch (error) {
+      toast.error('Failed to add item to cart. Please try again.')
       console.error('Error adding to cart:', error)
     }
     setIsAdding(false)

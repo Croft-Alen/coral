@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { Poppins } from 'next/font/google'
 import './globals.css'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -23,6 +25,18 @@ export default function RootLayout({
     <html lang="en" className={poppins.variable} suppressHydrationWarning>
       <body className="antialiased bg-pageBg text-text-body">
         {children}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="dark"
+        />
       </body>
     </html>
   )
