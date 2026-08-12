@@ -37,15 +37,15 @@ export default function CategoryPage() {
         if (data.success) {
           const categoryData = data.data
 
-          // Ensure packages have proper structure
           const safePackages = (categoryData.packages || []).map((pkg: any) => ({
             id: pkg.id || 0,
             name: pkg.name || 'Unnamed Product',
-price: typeof pkg.total_price === 'number'
-  ? pkg.total_price
-  : typeof pkg.base_price === 'number'
-  ? pkg.base_price
-  : 0,            description: pkg.description || '',
+            price: typeof pkg.total_price === 'number'
+              ? pkg.total_price
+              : typeof pkg.base_price === 'number'
+              ? pkg.base_price
+              : 0,
+            description: pkg.description || '',
             image: pkg.image || pkg.icon || '/images/rank-placeholder.png',
           }))
 
@@ -81,23 +81,23 @@ price: typeof pkg.total_price === 'number'
   }
 
   return (
-    <StoreLayout
-      sidebar={<StoreSidebar />}
-    >
-      <h1 className="text-2xl font-bold text-text-heading mb-6">
-        {loading ? 'Loading...' : categoryName}
-      </h1>
-      
-      {loading ? (
-        <p className="text-text-muted">Loading products...</p>
-      ) : packages.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
-          {packages.map((pkg) => (
-            <ProductCard key={pkg.id} product={pkg} />
-          ))}
+    <StoreLayout sidebar={<StoreSidebar />}>
+      {!loading && (
+        <div className="bg-cardBg p-6 sm:p-8 shadow-lg rounded-md">
+          <h1 className="text-2xl font-bold text-text-heading mb-6">
+            {categoryName}
+          </h1>
+          
+          {packages.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
+              {packages.map((pkg) => (
+                <ProductCard key={pkg.id} product={pkg} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-text-muted">No products found in this category.</p>
+          )}
         </div>
-      ) : (
-        <p className="text-text-muted">No products found in this category.</p>
       )}
     </StoreLayout>
   )

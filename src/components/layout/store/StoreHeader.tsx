@@ -4,11 +4,15 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { FaHome, FaShoppingBasket, FaUser, FaSignOutAlt } from 'react-icons/fa'
 import { useAuth } from '@/context/AuthContext'
+import { useCart } from '@/context/CartContext'
 import { LoginModal } from '@/components/store/LoginModal'
 
 export function StoreHeader() {
   const { username, isLoggedIn, logout } = useAuth()
+  const { getItemCount } = useCart()
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+
+  const itemCount = getItemCount()
 
   return (
     <>
@@ -24,9 +28,14 @@ export function StoreHeader() {
               
               <span className="w-[2px] h-8 bg-white/40 hidden sm:block flex-shrink-0" />
               
-              <Link href="/store/cart" className="flex items-center gap-1 sm:gap-1.5 text-white hover:text-white/80 transition-colors text-xs sm:text-base font-medium whitespace-nowrap">
+              <Link href="/store/cart" className="flex items-center gap-1 sm:gap-1.5 text-white hover:text-white/80 transition-colors text-xs sm:text-base font-medium whitespace-nowrap relative">
                 <FaShoppingBasket className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5" />
                 <span className="hidden sm:inline">Cart</span>
+                {itemCount > 0 && (
+                  <span className="absolute -top-2 -right-3 sm:-top-2.5 sm:-right-4 bg-red-500 text-white text-[9px] sm:text-xs font-bold rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center">
+                    {itemCount > 99 ? '99+' : itemCount}
+                  </span>
+                )}
               </Link>
               
               <span className="w-[2px] h-8 bg-white/40 hidden sm:block flex-shrink-0" />

@@ -43,7 +43,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const parsed = JSON.parse(saved)
         setItems(parsed.items || [])
         setBasketId(parsed.basketId || null)
-      } catch (e) {}
+      } catch (e) {
+        // Invalid JSON, ignore
+      }
     }
   }, [])
 
@@ -89,7 +91,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = async (packageId: number, name: string, price: number, image?: string) => {
     // Check if user is logged in
     if (!username) {
-      toast.warning('Please login first to add items to your cart!')
+      toast.warning('Please login first to add items to your cart.')
       return
     }
 
@@ -158,8 +160,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }]
       })
       
-      // Show success toast
-      toast.success(`${name} added to cart! 🛒`)
+      // Show success toast - NO EMOJI
+      toast.success(`${name} added to cart`)
       
     } catch (error) {
       console.error('Error adding item:', error)

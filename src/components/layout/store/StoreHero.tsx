@@ -1,17 +1,15 @@
 'use client'
 
-import { useState } from 'react'
 import { useSettings } from '@/context/SettingsContext'
 import { FaDiscord } from 'react-icons/fa'
-import { Modal } from '@/components/ui/Modal'
+import { toast } from 'react-toastify'
 
 export function StoreHero() {
   const { settings } = useSettings()
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleCopyIP = () => {
     navigator.clipboard.writeText(settings.serverIp)
-    setIsModalOpen(true)
+    toast.success('IP Copied! Now go join the server!')
   }
 
   return (
@@ -112,24 +110,6 @@ export function StoreHero() {
           </div>
         </div>
       </div>
-
-      {/* IP Copied Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="IP Copied!"
-        className="!max-w-sm !w-full !m-0 !fixed !top-4 !right-4 !left-auto !bottom-auto !translate-x-0 !translate-y-0 !border-none"
-      >
-        <div className="text-center py-2 px-2">
-          <div className="text-3xl mb-2">🎉</div>
-          <p className="text-text-body text-base mb-1">
-            Now go join the server!
-          </p>
-          <p className="text-text-muted text-xs">
-            Server IP: <span className="text-brand font-medium">{settings.serverIp}</span>
-          </p>
-        </div>
-      </Modal>
     </section>
   )
 }

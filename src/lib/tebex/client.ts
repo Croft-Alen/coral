@@ -1,17 +1,26 @@
 import { TebexHeadless } from 'tebex_headless'
 
-const WEBSTORE_IDENTIFIER =
-  '119al-d3b8068db2cd81f864d522690ed79fe876bf7264'
-
-const PRIVATE_KEY = 'vSlDa5GUjkuBXGmPXJCkcL4mlQZW3SGS'
-
 export const getTebexServerClient = () => {
-  return new TebexHeadless(
-    WEBSTORE_IDENTIFIER,
-    PRIVATE_KEY
-  )
+  const identifier = process.env.NEXT_PUBLIC_TEBEX_PUBLIC_TOKEN
+  const privateKey = process.env.TEBEX_PRIVATE_KEY
+
+  if (!identifier) {
+    throw new Error('NEXT_PUBLIC_TEBEX_PUBLIC_TOKEN is not defined in environment variables')
+  }
+
+  if (!privateKey) {
+    throw new Error('TEBEX_PRIVATE_KEY is not defined in environment variables')
+  }
+
+  return new TebexHeadless(identifier, privateKey)
 }
 
 export const getTebexClient = () => {
-  return new TebexHeadless(WEBSTORE_IDENTIFIER)
+  const identifier = process.env.NEXT_PUBLIC_TEBEX_PUBLIC_TOKEN
+
+  if (!identifier) {
+    throw new Error('NEXT_PUBLIC_TEBEX_PUBLIC_TOKEN is not defined in environment variables')
+  }
+
+  return new TebexHeadless(identifier)
 }
