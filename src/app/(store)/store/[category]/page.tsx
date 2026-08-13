@@ -83,13 +83,13 @@ export default function CategoryPage() {
   return (
     <StoreLayout sidebar={<StoreSidebar />}>
       {!loading && (
-        <div className="bg-cardBg p-6 sm:p-8 shadow-lg rounded-md">
+        <>
           <h1 className="text-2xl font-bold text-text-heading mb-6">
             {categoryName}
           </h1>
           
           {packages.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 justify-items-center">
+            <div className="grid grid-cols-1 gap-4">
               {packages.map((pkg) => (
                 <ProductCard key={pkg.id} product={pkg} />
               ))}
@@ -97,7 +97,7 @@ export default function CategoryPage() {
           ) : (
             <p className="text-text-muted">No products found in this category.</p>
           )}
-        </div>
+        </>
       )}
     </StoreLayout>
   )

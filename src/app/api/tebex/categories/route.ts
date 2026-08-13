@@ -3,16 +3,12 @@ import { getTebexServerClient } from '@/lib/tebex/client'
 
 export async function GET() {
   try {
-    console.log('📂 GET /api/tebex/categories called')
 
     const client = getTebexServerClient()
 
     const categories = await client.getCategories(true)
 
-    console.log(
-      '✅ Categories fetched successfully:',
-      categories?.length || 0
-    )
+    
 
     return NextResponse.json({
       success: true,

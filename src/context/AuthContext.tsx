@@ -1,47 +1,203 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from 'react'
+
+type PlayerPlatform = 'java' | 'bedrock'
+
+interface PlayerIdentity {
+  username: string
+  usernameId: string | null
+  platform: PlayerPlatform
+}
 
 interface AuthContextType {
+  player: PlayerIdentity | null
+
   username: string | null
+  usernameId: string | null
+  platform: PlayerPlatform | null
+
   isLoggedIn: boolean
-  login: (username: string) => void
+
+  login: (
+    username: string,
+    platform?: PlayerPlatform
+  ) => void
+
+  setUsernameId: (usernameId: string | null) => void
+
   logout: () => void
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined)
+const AuthContext =
+  createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [username, setUsername] = useState<string | null>(null)
+const PLAYER_STORAGE_KEY = 'mc_player'
 
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode
+}) {
+  const [player, setPlayer] =
+    useState<PlayerIdentity | null>(null)
+
+  /*
+   * Restore the selected Minecraft player.
+   */
   useEffect(() => {
-    const saved = localStorage.getItem('mc_username')
-    if (saved) {
-      setUsername(saved)
+    try {
+      const saved =
+        localStorage.getItem(PLAYER_STORAGE_KEY)
+
+      if (!saved) return
+
+      const parsed = JSON.parse(saved)
+
+      if (
+        !parsed ||
+        typeof parsed.username !== 'string' ||
+        !parsed.username.trim()
+      ) {
+        localStorage.removeItem(
+          PLAYER_STORAGE_KEY
+        )
+        return
+      }
+
+      const restoredPlayer: PlayerIdentity = {
+        username: parsed.username,
+        usernameId:
+          typeof parsed.usernameId === 'string'
+            ? parsed.usernameId
+            : null,
+        platform:
+          parsed.platform === 'bedrock'
+            ? 'bedrock'
+            : 'java',
+      }
+
+      setPlayer(restoredPlayer)
+    } catch (error) {
+      console.error(
+        'Error loading player identity:',
+        error
+      )
+
+      localStorage.removeItem(
+        PLAYER_STORAGE_KEY
+      )
     }
   }, [])
 
-  const login = (name: string) => {
-    setUsername(name)
-    localStorage.setItem('mc_username', name)
+  /*
+   * Select a Minecraft player.
+   *
+   * This only controls the currently selected player.
+   * Cart data is handled separately by CartContext.
+   */
+  const login = (
+    username: string,
+    platform: PlayerPlatform = 'java'
+  ) => {
+    const trimmedUsername = username.trim()
+
+    if (!trimmedUsername) return
+
+    const newPlayer: PlayerIdentity = {
+      username: trimmedUsername,
+      usernameId: null,
+      platform,
+    }
+
+    setPlayer(newPlayer)
+
+    localStorage.setItem(
+      PLAYER_STORAGE_KEY,
+      JSON.stringify(newPlayer)
+    )
   }
 
+  /*
+   * Store the Tebex username_id once it becomes available.
+   */
+  const setUsernameId = (
+    usernameId: string | null
+  ) => {
+    setPlayer(current => {
+      if (!current) return current
+
+      const updatedPlayer: PlayerIdentity = {
+        ...current,
+        usernameId,
+      }
+
+      localStorage.setItem(
+        PLAYER_STORAGE_KEY,
+        JSON.stringify(updatedPlayer)
+      )
+
+      return updatedPlayer
+    })
+  }
+
+  /*
+   * Logout only removes the currently selected player.
+   *
+   * It does NOT clear cart data.
+   *
+   * CartContext is responsible for loading the cart
+   * belonging to whichever player is selected next.
+   */
   const logout = () => {
-    setUsername(null)
-    localStorage.removeItem('mc_username')
+    setPlayer(null)
+
+    localStorage.removeItem(
+      PLAYER_STORAGE_KEY
+    )
   }
 
   return (
-    <AuthContext.Provider value={{ username, isLoggedIn: !!username, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        player,
+
+        username:
+          player?.username ?? null,
+
+        usernameId:
+          player?.usernameId ?? null,
+
+        platform:
+          player?.platform ?? null,
+
+        isLoggedIn: !!player,
+
+        login,
+        setUsernameId,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext)
+  const context =
+    useContext(AuthContext)
+
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider')
+    throw new Error(
+      'useAuth must be used within an AuthProvider'
+    )
   }
+
   return context
 }

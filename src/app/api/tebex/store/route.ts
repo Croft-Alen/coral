@@ -11,10 +11,7 @@ export async function GET() {
     // Get Tebex sidebar modules
     const sidebar = await client.getSidebar()
 
-    console.log(
-      '🧩 TEBEX SIDEBAR:',
-      JSON.stringify(sidebar, null, 2)
-    )
+    
 
     // Recent Payments
     // Tebex's SDK type does not currently declare avatar_url
@@ -24,20 +21,21 @@ export async function GET() {
     )
 
     const recentPayments =
-      recentPaymentsModule?.type === 'recent_payments'
-        ? recentPaymentsModule.data.payments.map((payment) => {
-            const runtimePayment = payment as typeof payment & {
-              avatar_url?: string
-            }
+  recentPaymentsModule?.type === 'recent_payments' &&
+  recentPaymentsModule.data?.payments
+    ? recentPaymentsModule.data.payments.map((payment, index) => {
+        const runtimePayment = payment as typeof payment & {
+          avatar_url?: string
+        }
 
-            return {
-              id: recentPaymentsModule.data.payments.indexOf(payment),
-              username: payment.username,
-              username_id: payment.username_id,
-              avatar_url: runtimePayment.avatar_url,
-            }
-          })
-        : []
+        return {
+          id: index,
+          username: payment.username,
+          username_id: payment.username_id,
+          avatar_url: runtimePayment.avatar_url,
+        }
+      })
+    : []
 
     // Top Customer
     // Same situation: avatar_url is not declared in the SDK type,
@@ -46,23 +44,23 @@ export async function GET() {
       (module) => module.type === 'top_customer'
     )
 
-    const topCustomer =
-      topCustomerModule?.type === 'top_customer'
-        ? (() => {
-            const runtimeCustomer =
-              topCustomerModule.data as typeof topCustomerModule.data & {
-                avatar_url?: string
-              }
+   const topCustomer =
+  topCustomerModule?.type === 'top_customer' &&
+  topCustomerModule.data
+    ? (() => {
+        const runtimeCustomer =
+          topCustomerModule.data as typeof topCustomerModule.data & {
+            avatar_url?: string
+          }
 
-            return {
-              username: topCustomerModule.data.username,
-              username_id: topCustomerModule.data.username_id,
-              avatar_url: runtimeCustomer.avatar_url,
-              total: topCustomerModule.data.total ?? 0,
-            }
-          })()
-        : null
-
+        return {
+          username: topCustomerModule.data.username,
+          username_id: topCustomerModule.data.username_id,
+          avatar_url: runtimeCustomer.avatar_url,
+          total: topCustomerModule.data.total ?? 0,
+        }
+      })()
+    : null
     return NextResponse.json({
       success: true,
       data: {

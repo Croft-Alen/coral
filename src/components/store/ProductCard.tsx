@@ -47,12 +47,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <>
-      <div className="bg-pageBg shadow-lg overflow-hidden flex flex-col w-full max-w-[260px] sm:max-w-[280px] md:max-w-[300px] cursor-pointer hover:shadow-xl transition-shadow duration-300 rounded-sm">
-        <div className="w-full aspect-square flex items-center justify-center p-8 bg-pageBg">
+      <div className="bg-cardBg overflow-hidden flex flex-row w-full max-w-full cursor-pointer transition-shadow duration-300 rounded-sm shadow-[0_1px_3px_rgba(0,0,0,0.2)] hover:shadow-[0_2px_6px_rgba(0,0,0,0.25)] -mt-1">
+        {/* Image - Left side */}
+        <div className="w-28 h-28 sm:w-32 sm:h-32 flex-shrink-0 flex items-center justify-center p-3 bg-cardBg">
           <img
             src={product.image || '/images/rank-placeholder.png'}
             alt={product.name}
-            className="w-3/5 h-3/5 object-contain"
+            className="w-full h-full object-contain"
             onError={(e) => {
               const target = e.target as HTMLImageElement
               target.src = '/images/rank-placeholder.png'
@@ -60,30 +61,35 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </div>
 
-        <div className="px-4 pt-1 pb-1 flex items-center justify-between bg-pageBg">
-          <h3 className="text-base sm:text-lg font-bold text-text-heading">{product.name || 'Unnamed Product'}</h3>
-          <span className="text-base sm:text-lg font-bold text-brand">${formattedPrice}</span>
-        </div>
+        {/* Content - Right side */}
+        <div className="flex-1 flex items-center justify-between px-5 py-4 bg-cardBg gap-4 min-w-0">
+          {/* Name and Price */}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-base sm:text-lg font-bold text-text-heading truncate">{product.name || 'Unnamed Product'}</h3>
+            <span className="text-base sm:text-lg font-bold text-brand">${formattedPrice}</span>
+          </div>
 
-        <div className="px-4 pb-4 pt-2 flex items-center gap-2 bg-pageBg">
-          <Button 
-            variant="primary" 
-            size="md" 
-            className="flex-1 gap-1.5 h-10 text-sm sm:text-base cursor-pointer rounded-sm"
-            onClick={handleAddToCart}
-            disabled={isAdding}
-          >
-            <FaShoppingBasket className="w-4 h-4" />
-            {isAdding ? 'Adding...' : 'Add to Cart'}
-          </Button>
-          <Button 
-            variant="primary" 
-            size="md" 
-            className="w-10 h-10 p-0 flex items-center justify-center cursor-pointer rounded-sm"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <FaInfoCircle className="w-4.5 h-4.5" />
-          </Button>
+          {/* Buttons */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <Button 
+              variant="primary" 
+              size="md" 
+              className="gap-2 h-10 px-4 text-sm sm:text-base cursor-pointer rounded-sm"
+              onClick={handleAddToCart}
+              disabled={isAdding}
+            >
+              <FaShoppingBasket className="w-4 h-4" />
+              {isAdding ? 'Adding...' : 'Add to Cart'}
+            </Button>
+            <Button 
+              variant="primary" 
+              size="md" 
+              className="w-10 h-10 p-0 flex items-center justify-center cursor-pointer rounded-sm"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <FaInfoCircle className="w-4.5 h-4.5" />
+            </Button>
+          </div>
         </div>
       </div>
 

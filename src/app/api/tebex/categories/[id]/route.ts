@@ -15,7 +15,6 @@ export async function GET(
   try {
     const { id } = await params
 
-    console.log(`📂 Resolving category: ${id}`)
 
     const client = getTebexServerClient()
 
@@ -41,9 +40,7 @@ export async function GET(
       )
     }
 
-    console.log(
-      `✅ Resolved "${id}" → ${category.name} (${category.id})`
-    )
+   
 
     // Fetch the complete category using the actual Tebex ID
     const categoryData = await client.getCategory(
