@@ -2,13 +2,26 @@
 
 import { AuthProvider } from '@/context/AuthContext'
 import { CartProvider } from '@/context/CartContext'
+import { SettingsProvider } from '@/context/SettingsContext'
+import { StoreUIProvider } from '@/context/StoreUIContext'
+import { ToastProvider } from '@/context/ToastContext'
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <AuthProvider>
-      <CartProvider>
-        {children}
-      </CartProvider>
-    </AuthProvider>
+    <SettingsProvider>
+      <StoreUIProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <CartProvider>
+              {children}
+            </CartProvider>
+          </AuthProvider>
+        </ToastProvider>
+      </StoreUIProvider>
+    </SettingsProvider>
   )
 }

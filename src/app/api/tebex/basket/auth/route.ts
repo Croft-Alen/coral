@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     const siteUrl =
       process.env.NEXT_PUBLIC_SITE_URL || 'https://your-domain.com'
 
-    const returnUrl = `${siteUrl}/store`
+    const returnUrl = `${siteUrl}/`
 
     const client = getTebexServerClient()
 

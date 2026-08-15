@@ -25,6 +25,8 @@ interface AuthContextType {
 
   isLoggedIn: boolean
 
+  isLoginModalOpen: boolean
+
   login: (
     username: string,
     platform?: PlayerPlatform
@@ -33,6 +35,9 @@ interface AuthContextType {
   setUsernameId: (usernameId: string | null) => void
 
   logout: () => void
+
+  openLoginModal: () => void
+  closeLoginModal: () => void
 }
 
 const AuthContext =
@@ -47,6 +52,9 @@ export function AuthProvider({
 }) {
   const [player, setPlayer] =
     useState<PlayerIdentity | null>(null)
+
+  const [isLoginModalOpen, setIsLoginModalOpen] =
+    useState(false)
 
   /*
    * Restore the selected Minecraft player.
@@ -161,6 +169,25 @@ export function AuthProvider({
     localStorage.removeItem(
       PLAYER_STORAGE_KEY
     )
+
+    setIsLoginModalOpen(false)
+  }
+
+  /*
+   * Open the existing global LoginModal.
+   *
+   * This can be called from ProductCard,
+   * ProductModal, StoreHeader, or any other component.
+   */
+  const openLoginModal = () => {
+    setIsLoginModalOpen(true)
+  }
+
+  /*
+   * Close the existing global LoginModal.
+   */
+  const closeLoginModal = () => {
+    setIsLoginModalOpen(false)
   }
 
   return (
@@ -179,9 +206,14 @@ export function AuthProvider({
 
         isLoggedIn: !!player,
 
+        isLoginModalOpen,
+
         login,
         setUsernameId,
         logout,
+
+        openLoginModal,
+        closeLoginModal,
       }}
     >
       {children}

@@ -1,51 +1,61 @@
 {
-  "serverRules": [
+  "categories": [
     {
-      "id": "1",
-      "title": "No Cheating",
-      "description": "Any use of unauthorised modifications, hacks, or exploits is strictly prohibited."
+      "id": "server",
+      "title": "Server Rules",
+      "rules": [
+        {
+          "id": "1",
+          "title": "No Cheating",
+          "description": "Any use of unauthorised modifications, hacks, or exploits is strictly prohibited."
+        },
+        {
+          "id": "2",
+          "title": "Respect Others",
+          "description": "Treat all players and staff with respect. Harassment, discrimination, or hate speech will not be tolerated."
+        },
+        {
+          "id": "3",
+          "title": "No Griefing",
+          "description": "Do not destroy, steal, or alter another player's builds or belongings without permission."
+        },
+        {
+          "id": "4",
+          "title": "No Advertising",
+          "description": "Advertising other servers or services is not allowed."
+        },
+        {
+          "id": "5",
+          "title": "Keep Chat Appropriate",
+          "description": "Avoid spamming, excessive swearing, or inappropriate content in chat."
+        }
+      ]
     },
     {
-      "id": "2",
-      "title": "Respect Others",
-      "description": "Treat all players and staff with respect. Harassment, discrimination, or hate speech will not be tolerated."
-    },
-    {
-      "id": "3",
-      "title": "No Griefing",
-      "description": "Do not destroy, steal, or alter another player's builds or belongings without permission."
-    },
-    {
-      "id": "4",
-      "title": "No Advertising",
-      "description": "Advertising other servers or services is not allowed."
-    },
-    {
-      "id": "5",
-      "title": "Keep Chat Appropriate",
-      "description": "Avoid spamming, excessive swearing, or inappropriate content in chat."
-    }
-  ],
-  "discordRules": [
-    {
-      "id": "1",
-      "title": "Follow Discord TOS",
-      "description": "All members must adhere to Discord's Terms of Service and Community Guidelines."
-    },
-    {
-      "id": "2",
-      "title": "No Spamming",
-      "description": "Avoid sending repeated messages, emojis, or links."
-    },
-    {
-      "id": "3",
-      "title": "Respect Privacy",
-      "description": "Do not share personal information of yourself or others."
-    },
-    {
-      "id": "4",
-      "title": "No NSFW Content",
-      "description": "Sharing NSFW or inappropriate content is strictly forbidden."
+      "id": "discord",
+      "title": "Discord Rules",
+      "rules": [
+        {
+          "id": "1",
+          "title": "Follow Discord TOS",
+          "description": "All members must adhere to Discord's Terms of Service and Community Guidelines."
+        },
+        {
+          "id": "2",
+          "title": "No Spamming",
+          "description": "Avoid sending repeated messages, emojis, or links."
+        },
+        {
+          "id": "3",
+          "title": "Respect Privacy",
+          "description": "Do not share personal information of yourself or others."
+        },
+        {
+          "id": "4",
+          "title": "No NSFW Content",
+          "description": "Sharing NSFW or inappropriate content is strictly forbidden."
+        }
+      ]
     }
   ]
 }

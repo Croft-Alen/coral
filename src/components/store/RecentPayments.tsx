@@ -10,7 +10,7 @@ interface RecentPayment {
 }
 
 export function RecentPayments() {
-  const [payments, setPayments] = useState<RecentPayment[]>([])
+  const [payments, setPayments] = useState<RecentPayment[] | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -20,10 +20,13 @@ export function RecentPayments() {
         const data = await response.json()
 
         if (data.success) {
-          setPayments(data.data.recentPayments || [])
+          setPayments(data.data.recentPayments || null)
+        } else {
+          setPayments(null)
         }
       } catch (error) {
         console.error('Error fetching recent payments:', error)
+        setPayments(null)
       } finally {
         setLoading(false)
       }
@@ -32,68 +35,78 @@ export function RecentPayments() {
     fetchRecentPayments()
   }, [])
 
+  // Reserve the card's expected height while Tebex data is loading.
+  if (loading) {
+    return (
+      <div
+        aria-hidden="true"
+        className="bg-cardBg shadow-lg overflow-hidden rounded-md min-h-[136px]"
+      />
+    )
+  }
+
+  // Tebex does not have the recent_payments module.
+  if (payments === null) {
+    return null
+  }
+
   const totalSlots = 8
   const filledSlots = payments.slice(0, totalSlots)
   const emptySlots = totalSlots - filledSlots.length
 
+  // Module exists, but there are currently no payments.
+  if (filledSlots.length === 0) {
+    return null
+  }
+
   return (
     <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
-      <div className="px-4 py-3">
-        <div className="inline-flex flex-col items-start">
-          <h3 className="text-sm sm:text-base font-semibold text-text-heading uppercase tracking-wider">
+      {/* Header with Brand Strip Behind Title */}
+      <div className="relative">
+        <div className="absolute inset-0 h-12 bg-brand" />
+
+        <div className="relative px-4 py-3">
+          <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
             RECENT PAYMENTS
           </h3>
-          <div className="w-1/2 h-1 bg-brand rounded-full mt-1" />
         </div>
       </div>
 
       <div className="px-3 pt-3 pb-4">
         <div className="grid grid-cols-4 gap-3">
-          {!loading && payments.length > 0 ? (
-            <>
-              {filledSlots.map((payment) => (
-                <div
-                  key={payment.id}
-                  className="relative group flex flex-col items-center"
-                >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm overflow-hidden bg-white/5">
-                    <img
-                      src={
-                        payment.avatar_url ||
-                        `https://minotar.net/avatar/${payment.username_id}.png`
-                      }
-                      alt={payment.username}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  
-                  <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-brand text-white text-sm px-3 py-1.5 rounded-sm whitespace-nowrap pointer-events-none font-medium">
-                    {payment.username}
-                  </div>
+          {filledSlots.map((payment) => (
+            <div
+              key={payment.id}
+              className="relative group flex flex-col items-center"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm overflow-hidden bg-white/5">
+                <img
+                  src={
+                    payment.avatar_url ||
+                    `https://minotar.net/avatar/${payment.username_id}.png`
+                  }
+                  alt={payment.username}
+                  className="w-full h-full object-cover"
+                />
+
+                <div className="absolute -top-10 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-pageBg text-text-body text-sm px-3 py-1.5 rounded-sm whitespace-nowrap pointer-events-none font-medium shadow-lg border border-white/5">
+                  {payment.username}
                 </div>
-              ))}
-              
-              {Array.from({ length: emptySlots }).map((_, index) => (
-                <div
-                  key={`skeleton-${index}`}
-                  className="flex flex-col items-center"
-                >
-                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm bg-pageBg" />
-                </div>
-              ))}
-            </>
-          ) : (
-            Array.from({ length: 8 }).map((_, index) => (
-              <div
-                key={`skeleton-${index}`}
-                className="flex flex-col items-center"
-              >
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm bg-pageBg" />
               </div>
-            ))
-          )}
+            </div>
+          ))}
+
+          {Array.from({ length: emptySlots }).map((_, index) => (
+            <div
+              key={`skeleton-${index}`}
+              className="flex flex-col items-center"
+            >
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-sm bg-pageBg" />
+            </div>
+          ))}
         </div>
       </div>
     </div>
   )
 }
+

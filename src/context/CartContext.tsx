@@ -10,7 +10,7 @@ import {
   ReactNode,
 } from 'react'
 import { useAuth } from './AuthContext'
-import { toast } from 'react-toastify'
+import { useToast } from './ToastContext'
 
 interface CartItem {
   id: string
@@ -36,7 +36,6 @@ interface CartContextType {
   items: CartItem[]
   basketId: string | null
   isLoading: boolean
-
   couponCode: string | null
   couponDiscount: number
   basketSubtotal: number
@@ -53,7 +52,9 @@ interface CartContextType {
     image?: string
   ) => Promise<void>
 
-  removeItem: (packageId: number) => Promise<void>
+  removeItem: (
+    packageId: number
+  ) => Promise<void>
 
   updateQuantity: (
     packageId: number,
@@ -63,25 +64,42 @@ interface CartContextType {
   clearCart: () => void
 
   getTotal: () => number
+
   getItemCount: () => number
 
   checkout: () => Promise<string | null>
 
   syncBasket: () => Promise<void>
 
-  applyCoupon: (code: string) => Promise<boolean>
-  removeCoupon: (code: string) => Promise<boolean>
+  applyCoupon: (
+    code: string
+  ) => Promise<boolean>
 
-  applyGiftCard: (cardNumber: string) => Promise<boolean>
-  removeGiftCard: (cardNumber: string) => Promise<boolean>
+  removeCoupon: (
+    code: string
+  ) => Promise<boolean>
 
-  applyCreatorCode: (code: string) => Promise<boolean>
-  removeCreatorCode: (code: string) => Promise<boolean>
+  applyGiftCard: (
+    cardNumber: string
+  ) => Promise<boolean>
+
+  removeGiftCard: (
+    cardNumber: string
+  ) => Promise<boolean>
+
+  applyCreatorCode: (
+    code: string
+  ) => Promise<boolean>
+
+  removeCreatorCode: (
+    code: string
+  ) => Promise<boolean>
 }
 
-const CartContext = createContext<CartContextType | undefined>(
-  undefined
-)
+const CartContext =
+  createContext<CartContextType | undefined>(
+    undefined
+  )
 
 export function CartProvider({
   children,
@@ -89,10 +107,14 @@ export function CartProvider({
   children: ReactNode
 }) {
   const [items, setItems] = useState<CartItem[]>([])
-  const [basketId, setBasketId] = useState<string | null>(null)
+  const [basketId, setBasketId] =
+    useState<string | null>(null)
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [isHydrated, setIsHydrated] = useState(false)
+  const [isLoading, setIsLoading] =
+    useState(true)
+
+  const [isHydrated, setIsHydrated] =
+    useState(false)
 
   const [couponCode, setCouponCode] =
     useState<string | null>(null)
@@ -120,46 +142,34 @@ export function CartProvider({
 
   const { username, usernameId } = useAuth()
 
+  const {
+    success,
+    error,
+    warning,
+    info,
+  } = useToast()
+
   const syncingRef = useRef(false)
 
   const initialSyncBasketRef =
     useRef<string | null>(null)
 
-  /*
-   * Every Minecraft player gets their own cart storage.
-   *
-   * usernameId is preferred because it is the stable
-   * Tebex/Minecraft identity.
-   *
-   * Username is only used as a temporary fallback until
-   * usernameId becomes available.
-   */
   const cartStorageKey = usernameId
     ? `cart:${usernameId}`
     : username
       ? `cart:${username.toLowerCase()}`
       : null
 
-  /*
-   * Temporary username-based key.
-   *
-   * This is used only for migrating a cart from the
-   * username fallback to the stable usernameId key.
-   */
   const legacyCartStorageKey = username
     ? `cart:${username.toLowerCase()}`
     : null
 
   /*
-   * Reset all in-memory cart state.
-   *
-   * This happens when switching players so the previous
-   * player's basket can never remain visible.
+   * Reset all cart state.
    */
   const resetCartState = useCallback(() => {
     setItems([])
     setBasketId(null)
-
     setCouponCode(null)
     setCouponDiscount(0)
     setBasketSubtotal(0)
@@ -174,26 +184,12 @@ export function CartProvider({
   }, [])
 
   /*
-   * Handle a basket that has become empty.
-   *
-   * Once Tebex confirms that a basket contains zero packages,
-   * that basket is considered finished for local cart purposes.
-   *
-   * We intentionally do NOT attempt to delete the Tebex basket
-   * itself here because the current client has no basket-delete
-   * operation. Instead:
-   *
-   *   1. Forget the basketId locally.
-   *   2. Clear all basket-specific state.
-   *   3. Remove the local cart storage.
-   *
-   * The next addItem() call will create a fresh Tebex basket.
+   * Handle an empty Tebex basket.
    */
   const handleEmptyBasket = useCallback(
     (storageKey: string | null) => {
       setItems([])
       setBasketId(null)
-
       setCouponCode(null)
       setCouponDiscount(0)
       setBasketSubtotal(0)
@@ -213,24 +209,8 @@ export function CartProvider({
   )
 
   /*
-   * If usernameId becomes available after login, migrate the
-   * temporary username-based cart to the stable identity key.
-   *
-   * Example:
-   *
-   * Before Tebex identity is known:
-   *
-   *   cart:jone
-   *
-   * After usernameId becomes available:
-   *
-   *   cart:123456789
-   *
-   * The old fallback key is removed so the same player does not
-   * end up with two independent local carts.
-   *
-   * We never merge two existing baskets because two Tebex
-   * basket IDs cannot safely be combined client-side.
+   * Migrate old username-based cart storage
+   * to stable usernameId-based storage.
    */
   useEffect(() => {
     if (!usernameId) return
@@ -252,21 +232,13 @@ export function CartProvider({
           legacyCartStorageKey
         )
 
-      if (!legacySaved) {
-        return
-      }
+      if (!legacySaved) return
 
       const stableSaved =
         localStorage.getItem(
           stableCartStorageKey
         )
 
-      /*
-       * If a stable identity cart already exists, keep it.
-       *
-       * We deliberately do not merge the two carts because
-       * each may contain a different Tebex basketId.
-       */
       if (stableSaved) {
         localStorage.removeItem(
           legacyCartStorageKey
@@ -275,10 +247,6 @@ export function CartProvider({
         return
       }
 
-      /*
-       * Move the entire existing username-based cart
-       * to the stable usernameId-based key.
-       */
       localStorage.setItem(
         stableCartStorageKey,
         legacySaved
@@ -287,10 +255,9 @@ export function CartProvider({
       localStorage.removeItem(
         legacyCartStorageKey
       )
-    } catch (error) {
-      console.error(
-        'Error migrating cart to stable player identity:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not migrate saved cart.'
       )
     }
   }, [
@@ -299,19 +266,14 @@ export function CartProvider({
   ])
 
   /*
-   * Load the cart belonging to the currently selected
-   * Minecraft player.
-   *
-   * If usernameId exists, the stable identity key is used.
-   *
-   * Jone -> cart:JONE_ID
-   * Aio  -> cart:AIO_ID
+   * Load cart from localStorage.
    */
   useEffect(() => {
     if (!cartStorageKey) {
       resetCartState()
       setIsHydrated(false)
       setIsLoading(false)
+
       return
     }
 
@@ -322,7 +284,9 @@ export function CartProvider({
 
     try {
       const saved =
-        localStorage.getItem(cartStorageKey)
+        localStorage.getItem(
+          cartStorageKey
+        )
 
       if (saved) {
         const parsed = JSON.parse(saved)
@@ -346,55 +310,78 @@ export function CartProvider({
         }
 
         if (
-          typeof parsed.couponDiscount === 'number' &&
-          Number.isFinite(parsed.couponDiscount)
+          typeof parsed.couponDiscount ===
+            'number' &&
+          Number.isFinite(
+            parsed.couponDiscount
+          )
         ) {
-          setCouponDiscount(parsed.couponDiscount)
+          setCouponDiscount(
+            parsed.couponDiscount
+          )
         }
 
         if (
-          typeof parsed.basketSubtotal === 'number' &&
-          Number.isFinite(parsed.basketSubtotal)
+          typeof parsed.basketSubtotal ===
+            'number' &&
+          Number.isFinite(
+            parsed.basketSubtotal
+          )
         ) {
-          setBasketSubtotal(parsed.basketSubtotal)
+          setBasketSubtotal(
+            parsed.basketSubtotal
+          )
         }
 
         if (
           typeof parsed.basketTax === 'number' &&
-          Number.isFinite(parsed.basketTax)
+          Number.isFinite(
+            parsed.basketTax
+          )
         ) {
           setBasketTax(parsed.basketTax)
         }
 
         if (
-          typeof parsed.basketTotal === 'number' &&
-          Number.isFinite(parsed.basketTotal)
+          typeof parsed.basketTotal ===
+            'number' &&
+          Number.isFinite(
+            parsed.basketTotal
+          )
         ) {
-          setBasketTotal(parsed.basketTotal)
+          setBasketTotal(
+            parsed.basketTotal
+          )
         }
 
         if (Array.isArray(parsed.coupons)) {
           setCoupons(parsed.coupons)
         }
 
-        if (Array.isArray(parsed.giftCards)) {
+        if (
+          Array.isArray(parsed.giftCards)
+        ) {
           setGiftCards(parsed.giftCards)
         }
 
         if (
-          typeof parsed.creatorCode === 'string' &&
+          typeof parsed.creatorCode ===
+            'string' &&
           parsed.creatorCode.trim()
         ) {
-          setCreatorCode(parsed.creatorCode)
+          setCreatorCode(
+            parsed.creatorCode
+          )
         }
       }
-    } catch (error) {
-      console.error(
-        'Error loading cart:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not load saved cart.'
       )
 
-      localStorage.removeItem(cartStorageKey)
+      localStorage.removeItem(
+        cartStorageKey
+      )
     } finally {
       setIsHydrated(true)
       setIsLoading(false)
@@ -405,23 +392,12 @@ export function CartProvider({
   ])
 
   /*
-   * Persist the current player's cart only to that
-   * player's storage key.
+   * Persist cart to localStorage.
    */
   useEffect(() => {
     if (!isHydrated) return
     if (!cartStorageKey) return
 
-    /*
-     * An empty cart with no basket is not persisted.
-     *
-     * This keeps the local lifecycle explicit:
-     *
-     *   items = []
-     *   basketId = null
-     *
-     * means there is no active local basket.
-     */
     if (
       items.length === 0 &&
       basketId === null
@@ -463,6 +439,10 @@ export function CartProvider({
     cartStorageKey,
   ])
 
+  /*
+   * Convert Tebex basket packages
+   * into CartItem structures.
+   */
   const mapBasketItems = useCallback(
     (packages: any[]): CartItem[] => {
       let savedItems: CartItem[] = []
@@ -475,52 +455,72 @@ export function CartProvider({
             )
 
           if (saved) {
-            const parsed = JSON.parse(saved)
+            const parsed =
+              JSON.parse(saved)
 
-            if (Array.isArray(parsed.items)) {
-              savedItems = parsed.items
+            if (
+              Array.isArray(parsed.items)
+            ) {
+              savedItems =
+                parsed.items
             }
           }
         }
       } catch {
+        console.warn(
+          '[Cart] Could not read saved cart items.'
+        )
+
         savedItems = []
       }
 
       return packages.map((pkg: any) => {
-        const packageId = Number(pkg.id)
+        const packageId =
+          Number(pkg.id)
 
         const existingItem =
           savedItems.find(
             item =>
-              Number(item.packageId) ===
-              packageId
+              Number(
+                item.packageId
+              ) === packageId
           )
 
         const packagePrice =
           Number(pkg.price)
 
         const basketPrice =
-          Number(pkg.in_basket?.price)
+          Number(
+            pkg.in_basket?.price
+          )
 
         let price = 0
 
         if (
-          Number.isFinite(packagePrice) &&
+          Number.isFinite(
+            packagePrice
+          ) &&
           packagePrice > 0
         ) {
           price = packagePrice
         } else if (
-          Number.isFinite(basketPrice) &&
+          Number.isFinite(
+            basketPrice
+          ) &&
           basketPrice > 0
         ) {
           price = basketPrice
         } else if (
           existingItem &&
           Number.isFinite(
-            Number(existingItem.price)
+            Number(
+              existingItem.price
+            )
           )
         ) {
-          price = Number(existingItem.price)
+          price = Number(
+            existingItem.price
+          )
         }
 
         const tebexQuantity =
@@ -536,7 +536,8 @@ export function CartProvider({
             ? tebexQuantity
             : legacyQuantity > 0
               ? legacyQuantity
-              : existingItem?.quantity || 1
+              : existingItem?.quantity ||
+                1
 
         const image =
           pkg.image ||
@@ -556,7 +557,9 @@ export function CartProvider({
             'Unknown Product',
 
           price,
+
           quantity,
+
           image,
         }
       })
@@ -564,26 +567,20 @@ export function CartProvider({
     [cartStorageKey]
   )
 
+  /*
+   * Apply a Tebex basket response.
+   */
   const applyBasket = useCallback(
     (basket: any) => {
       if (!basket) return
 
       const packages =
-        Array.isArray(basket.packages)
+        Array.isArray(
+          basket.packages
+        )
           ? basket.packages
           : []
 
-      /*
-       * IMPORTANT:
-       *
-       * Tebex has confirmed that this basket contains
-       * no packages.
-       *
-       * The current Tebex basket is therefore considered
-       * finished locally. We discard its basketId and
-       * basket-specific state so the next purchase starts
-       * with a new basket.
-       */
       if (packages.length === 0) {
         handleEmptyBasket(
           cartStorageKey
@@ -598,44 +595,79 @@ export function CartProvider({
       setItems(mappedItems)
 
       if (basket.ident) {
-        setBasketId(basket.ident)
+        setBasketId(
+          basket.ident
+        )
       }
 
       const basePrice =
-        Number(basket.base_price)
+        Number(
+          basket.base_price
+        )
 
       const salesTax =
-        Number(basket.sales_tax)
+        Number(
+          basket.sales_tax
+        )
 
       const totalPrice =
-        Number(basket.total_price)
+        Number(
+          basket.total_price
+        )
 
-      if (Number.isFinite(basePrice)) {
+      if (
+        Number.isFinite(
+          basePrice
+        )
+      ) {
         setBasketSubtotal(
-          Math.max(0, basePrice)
+          Math.max(
+            0,
+            basePrice
+          )
         )
       }
 
-      if (Number.isFinite(salesTax)) {
+      if (
+        Number.isFinite(
+          salesTax
+        )
+      ) {
         setBasketTax(
-          Math.max(0, salesTax)
+          Math.max(
+            0,
+            salesTax
+          )
         )
       }
 
-      if (Number.isFinite(totalPrice)) {
+      if (
+        Number.isFinite(
+          totalPrice
+        )
+      ) {
         setBasketTotal(
-          Math.max(0, totalPrice)
+          Math.max(
+            0,
+            totalPrice
+          )
         )
       }
 
       const tebexCoupons =
-        Array.isArray(basket.coupons)
+        Array.isArray(
+          basket.coupons
+        )
           ? basket.coupons
           : []
 
-      setCoupons(tebexCoupons)
+      setCoupons(
+        tebexCoupons
+      )
 
-      if (tebexCoupons.length > 0) {
+      if (
+        tebexCoupons.length > 0
+      ) {
         const firstCoupon =
           tebexCoupons[0]
 
@@ -660,7 +692,9 @@ export function CartProvider({
           ? basket.giftcards
           : []
 
-      setGiftCards(tebexGiftCards)
+      setGiftCards(
+        tebexGiftCards
+      )
 
       if (
         typeof basket.creator_code ===
@@ -675,13 +709,18 @@ export function CartProvider({
       }
 
       if (
-        Number.isFinite(basePrice) &&
-        Number.isFinite(totalPrice)
+        Number.isFinite(
+          basePrice
+        ) &&
+        Number.isFinite(
+          totalPrice
+        )
       ) {
         const calculatedDiscount =
           Math.max(
             0,
-            basePrice - totalPrice
+            basePrice -
+              totalPrice
           )
 
         setCouponDiscount(
@@ -696,6 +735,9 @@ export function CartProvider({
     ]
   )
 
+  /*
+   * Sync current basket with Tebex.
+   */
   const syncBasket = useCallback(
     async () => {
       if (!basketId) return
@@ -706,14 +748,15 @@ export function CartProvider({
       try {
         setIsLoading(true)
 
-        const response = await fetch(
-          `/api/tebex/basket?basketId=${encodeURIComponent(
-            basketId
-          )}`,
-          {
-            cache: 'no-store',
-          }
-        )
+        const response =
+          await fetch(
+            `/api/tebex/basket?basketId=${encodeURIComponent(
+              basketId
+            )}`,
+            {
+              cache: 'no-store',
+            }
+          )
 
         const data =
           await response.json()
@@ -722,21 +765,28 @@ export function CartProvider({
           data.success &&
           data.data
         ) {
-          applyBasket(data.data)
+          applyBasket(
+            data.data
+          )
         }
-      } catch (error) {
-        console.error(
-          'Error syncing basket:',
-          error
+      } catch {
+        console.warn(
+          '[Cart] Could not sync cart.'
         )
       } finally {
         syncingRef.current = false
         setIsLoading(false)
       }
     },
-    [basketId, applyBasket]
+    [
+      basketId,
+      applyBasket,
+    ]
   )
 
+  /*
+   * Initial basket sync.
+   */
   useEffect(() => {
     if (!isHydrated) return
     if (!username) return
@@ -760,26 +810,23 @@ export function CartProvider({
     syncBasket,
   ])
 
+  /*
+   * Add item.
+   */
   const addItem = async (
     packageId: number,
     name: string,
     price: number,
     image?: string
   ) => {
-    if (!username) {
-      toast.warning(
-        'Please login first to add items to your cart.'
-      )
-      return
-    }
-
     try {
       setIsLoading(true)
 
       const existingItem =
         items.find(
           item =>
-            item.packageId === packageId
+            item.packageId ===
+            packageId
         )
 
       const newQuantity =
@@ -787,24 +834,27 @@ export function CartProvider({
           ? existingItem.quantity + 1
           : 1
 
-      let currentBasketId = basketId
+      let currentBasketId =
+        basketId
 
       if (!currentBasketId) {
-        const response = await fetch(
-          '/api/tebex/basket',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify({
-              packageId,
-              quantity: newQuantity,
-              username,
-            }),
-          }
-        )
+        const response =
+          await fetch(
+            '/api/tebex/basket',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+              body: JSON.stringify({
+                packageId,
+                quantity:
+                  newQuantity,
+                username,
+              }),
+            }
+          )
 
         const data =
           await response.json()
@@ -813,40 +863,50 @@ export function CartProvider({
           !data.success ||
           !data.data
         ) {
-          throw new Error(
-            data.error ||
-              'Failed to create basket'
+          console.warn(
+            '[Cart] Could not add item to cart.'
           )
+
+          error(
+            'Failed to add item to cart. Please try again.'
+          )
+
+          return
         }
 
         currentBasketId =
           data.data.ident
 
-        setBasketId(currentBasketId)
+        setBasketId(
+          currentBasketId
+        )
 
-        applyBasket(data.data)
+        applyBasket(
+          data.data
+        )
 
         initialSyncBasketRef.current =
           currentBasketId
       } else {
-        const response = await fetch(
-          '/api/tebex/basket',
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify({
-              basketId:
-                currentBasketId,
-              packageId,
-              quantity:
-                newQuantity,
-              username,
-            }),
-          }
-        )
+        const response =
+          await fetch(
+            '/api/tebex/basket',
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+              body: JSON.stringify({
+                basketId:
+                  currentBasketId,
+                packageId,
+                quantity:
+                  newQuantity,
+                username,
+              }),
+            }
+          )
 
         const data =
           await response.json()
@@ -855,48 +915,48 @@ export function CartProvider({
           !data.success ||
           !data.data
         ) {
-          throw new Error(
-            data.error ||
-              'Failed to update basket'
+          console.warn(
+            '[Cart] Could not update cart.'
           )
+
+          error(
+            'Failed to add item to cart. Please try again.'
+          )
+
+          return
         }
 
-        applyBasket(data.data)
+        applyBasket(
+          data.data
+        )
 
         initialSyncBasketRef.current =
           currentBasketId
       }
 
-      toast.success(
+      success(
         `${name} added to cart`
       )
-    } catch (error) {
-      console.error(
-        'Error adding item:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not add item to cart.'
       )
 
-      toast.error(
+      error(
         'Failed to add item to cart. Please try again.'
       )
-
-      throw error
     } finally {
       setIsLoading(false)
     }
   }
 
+  /*
+   * Remove item.
+   */
   const removeItem = async (
     packageId: number
   ) => {
     if (!basketId) return
-
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
-      return
-    }
 
     try {
       setIsLoading(true)
@@ -904,49 +964,47 @@ export function CartProvider({
       const removedItem =
         items.find(
           item =>
-            item.packageId === packageId
+            item.packageId ===
+            packageId
         )
 
-      const response = await fetch(
-        '/api/tebex/basket',
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            packageId,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket',
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              packageId,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
 
       if (!data.success) {
-        throw new Error(
-          data.error ||
-            'Failed to remove item'
+        console.warn(
+          '[Cart] Could not remove item.'
         )
+
+        error(
+          'Failed to remove item from cart. Please try again.'
+        )
+
+        return
       }
 
-      /*
-       * If the API returned the updated basket,
-       * use Tebex's actual state as the source of truth.
-       *
-       * This is important because the basket may have
-       * become completely empty on Tebex.
-       */
       if (data.data) {
-        applyBasket(data.data)
+        applyBasket(
+          data.data
+        )
       } else {
-        /*
-         * Fallback for an API response that only confirms
-         * deletion without returning the updated basket.
-         */
         const remainingItems =
           items.filter(
             item =>
@@ -954,7 +1012,9 @@ export function CartProvider({
               packageId
           )
 
-        setItems(remainingItems)
+        setItems(
+          remainingItems
+        )
 
         if (
           remainingItems.length === 0
@@ -966,61 +1026,60 @@ export function CartProvider({
       }
 
       if (removedItem) {
-        toast.info(
+        info(
           `${removedItem.name} removed from cart`
         )
       }
-    } catch (error) {
-      console.error(
-        'Error removing item:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not remove item.'
       )
 
-      toast.error(
-        'Failed to remove item from cart'
+      error(
+        'Failed to remove item from cart. Please try again.'
       )
     } finally {
       setIsLoading(false)
     }
   }
 
+  /*
+   * Update quantity.
+   */
   const updateQuantity = async (
     packageId: number,
     quantity: number
   ) => {
     if (quantity < 1) {
-      await removeItem(packageId)
+      await removeItem(
+        packageId
+      )
+
       return
     }
 
     if (!basketId) return
 
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
-      return
-    }
-
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket',
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            packageId,
-            quantity,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket',
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              packageId,
+              quantity,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1029,44 +1088,47 @@ export function CartProvider({
         !data.success ||
         !data.data
       ) {
-        throw new Error(
-          data.error ||
-            'Failed to update quantity'
+        console.warn(
+          '[Cart] Could not update quantity.'
         )
+
+        error(
+          'Failed to update quantity. Please try again.'
+        )
+
+        return
       }
 
-      applyBasket(data.data)
+      applyBasket(
+        data.data
+      )
 
       initialSyncBasketRef.current =
         basketId
-    } catch (error) {
-      console.error(
-        'Error updating quantity:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not update quantity.'
       )
 
-      toast.error(
-        'Failed to update quantity'
+      error(
+        'Failed to update quantity. Please try again.'
       )
     } finally {
       setIsLoading(false)
     }
   }
 
+  /*
+   * Apply coupon.
+   */
   const applyCoupon = async (
     code: string
   ): Promise<boolean> => {
     if (!basketId) {
-      toast.warning(
+      warning(
         'Your cart is empty.'
       )
-      return false
-    }
 
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
       return false
     }
 
@@ -1074,28 +1136,29 @@ export function CartProvider({
       code.trim().toUpperCase()
 
     if (!normalizedCode) {
-      toast.warning(
+      warning(
         'Please enter a coupon code.'
       )
+
       return false
     }
 
     const alreadyApplied =
       coupons.some(coupon => {
-        const couponCode =
+        const existingCode =
           coupon?.coupon_code ||
           coupon?.code ||
           coupon?.name ||
           ''
 
         return (
-          couponCode.toUpperCase() ===
+          String(existingCode).toUpperCase() ===
           normalizedCode
         )
       })
 
     if (alreadyApplied) {
-      toast.info(
+      info(
         'Coupon already applied.'
       )
 
@@ -1107,22 +1170,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/coupon',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            couponCode:
-              normalizedCode,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/coupon',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              couponCode:
+                normalizedCode,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1141,35 +1205,38 @@ export function CartProvider({
         ) {
           await syncBasket()
 
-          toast.info(
+          info(
             'Coupon already applied.'
           )
 
           return false
         }
 
-        throw new Error(
-          data.error ||
-            'Failed to apply coupon'
+        console.warn(
+          '[Cart] Coupon could not be applied.'
         )
+
+        error(
+          'Invalid or unavailable coupon code. Please check the code and try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.success(
+      success(
         'Coupon applied successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error applying coupon:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not apply coupon.'
       )
 
-      toast.error(
-        error?.message ||
-          'Invalid or unavailable coupon code.'
+      error(
+        'Invalid or unavailable coupon code. Please check the code and try again.'
       )
 
       return false
@@ -1178,17 +1245,13 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Remove coupon.
+   */
   const removeCoupon = async (
     code: string
   ): Promise<boolean> => {
     if (!basketId) return false
-
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
-      return false
-    }
 
     const normalizedCode =
       code.trim().toUpperCase()
@@ -1198,22 +1261,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/coupon',
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            couponCode:
-              normalizedCode,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/coupon',
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              couponCode:
+                normalizedCode,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1222,28 +1286,31 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
-        throw new Error(
-          data.error ||
-            'Failed to remove coupon'
+        console.warn(
+          '[Cart] Coupon could not be removed.'
         )
+
+        error(
+          'Failed to remove coupon. Please try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.info(
-        'Coupon removed.'
+      info(
+        'Coupon removed successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error removing coupon:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not remove coupon.'
       )
 
-      toast.error(
-        error?.message ||
-          'Failed to remove coupon.'
+      error(
+        'Failed to remove coupon. Please try again.'
       )
 
       return false
@@ -1252,20 +1319,17 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Apply gift card.
+   */
   const applyGiftCard = async (
     cardNumber: string
   ): Promise<boolean> => {
     if (!basketId) {
-      toast.warning(
+      warning(
         'Your cart is empty.'
       )
-      return false
-    }
 
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
       return false
     }
 
@@ -1273,27 +1337,30 @@ export function CartProvider({
       cardNumber.trim()
 
     if (!normalizedCard) {
-      toast.warning(
+      warning(
         'Please enter a gift card number.'
       )
+
       return false
     }
 
     const alreadyApplied =
-      giftCards.some(giftCard => {
-        const card =
-          giftCard?.card_number ||
-          giftCard?.code ||
-          ''
+      giftCards.some(
+        giftCard => {
+          const card =
+            giftCard?.card_number ||
+            giftCard?.code ||
+            ''
 
-        return (
-          String(card) ===
-          normalizedCard
-        )
-      })
+          return (
+            String(card) ===
+            normalizedCard
+          )
+        }
+      )
 
     if (alreadyApplied) {
-      toast.info(
+      info(
         'Gift card already applied.'
       )
 
@@ -1305,22 +1372,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/giftcard',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            cardNumber:
-              normalizedCard,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/giftcard',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              cardNumber:
+                normalizedCard,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1339,35 +1407,38 @@ export function CartProvider({
         ) {
           await syncBasket()
 
-          toast.info(
+          info(
             'Gift card already applied.'
           )
 
           return false
         }
 
-        throw new Error(
-          data.error ||
-            'Failed to apply gift card'
+        console.warn(
+          '[Cart] Gift card could not be applied.'
         )
+
+        error(
+          'Invalid or unavailable gift card. Please check the card number and try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.success(
+      success(
         'Gift card applied successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error applying gift card:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not apply gift card.'
       )
 
-      toast.error(
-        error?.message ||
-          'Invalid or unavailable gift card.'
+      error(
+        'Invalid or unavailable gift card. Please check the card number and try again.'
       )
 
       return false
@@ -1376,17 +1447,13 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Remove gift card.
+   */
   const removeGiftCard = async (
     cardNumber: string
   ): Promise<boolean> => {
     if (!basketId) return false
-
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
-      return false
-    }
 
     const normalizedCard =
       String(cardNumber).trim()
@@ -1396,22 +1463,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/giftcard',
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            cardNumber:
-              normalizedCard,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/giftcard',
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              cardNumber:
+                normalizedCard,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1420,28 +1488,31 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
-        throw new Error(
-          data.error ||
-            'Failed to remove gift card'
+        console.warn(
+          '[Cart] Gift card could not be removed.'
         )
+
+        error(
+          'Failed to remove gift card. Please try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.info(
-        'Gift card removed.'
+      info(
+        'Gift card removed successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error removing gift card:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not remove gift card.'
       )
 
-      toast.error(
-        error?.message ||
-          'Failed to remove gift card.'
+      error(
+        'Failed to remove gift card. Please try again.'
       )
 
       return false
@@ -1450,20 +1521,17 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Apply creator code.
+   */
   const applyCreatorCode = async (
     code: string
   ): Promise<boolean> => {
     if (!basketId) {
-      toast.warning(
+      warning(
         'Your cart is empty.'
       )
-      return false
-    }
 
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
       return false
     }
 
@@ -1471,9 +1539,10 @@ export function CartProvider({
       code.trim()
 
     if (!normalizedCode) {
-      toast.warning(
+      warning(
         'Please enter a creator code.'
       )
+
       return false
     }
 
@@ -1482,7 +1551,7 @@ export function CartProvider({
       creatorCode.toLowerCase() ===
         normalizedCode.toLowerCase()
     ) {
-      toast.info(
+      info(
         'Creator code already applied.'
       )
 
@@ -1494,22 +1563,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/creator-code',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            creatorCode:
-              normalizedCode,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/creator-code',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              creatorCode:
+                normalizedCode,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1528,35 +1598,44 @@ export function CartProvider({
         ) {
           await syncBasket()
 
-          toast.info(
+          info(
             'Creator code already applied.'
           )
 
           return false
         }
 
-        throw new Error(
-          data.error ||
-            'Failed to apply creator code'
+        /*
+         * Expected API failure.
+         *
+         * DO NOT throw an Error here.
+         * This prevents a huge browser stack trace.
+         */
+        console.warn(
+          '[Cart] Creator code could not be applied.'
         )
+
+        error(
+          'Invalid or unavailable creator code. Please check the code and try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.success(
+      success(
         'Creator code applied successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error applying creator code:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not apply creator code.'
       )
 
-      toast.error(
-        error?.message ||
-          'Invalid or unavailable creator code.'
+      error(
+        'Invalid or unavailable creator code. Please check the code and try again.'
       )
 
       return false
@@ -1565,17 +1644,13 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Remove creator code.
+   */
   const removeCreatorCode = async (
     code: string
   ): Promise<boolean> => {
     if (!basketId) return false
-
-    if (!username) {
-      toast.warning(
-        'Please login first.'
-      )
-      return false
-    }
 
     const normalizedCode =
       String(code).trim()
@@ -1585,22 +1660,23 @@ export function CartProvider({
     try {
       setIsLoading(true)
 
-      const response = await fetch(
-        '/api/tebex/basket/creator-code',
-        {
-          method: 'DELETE',
-          headers: {
-            'Content-Type':
-              'application/json',
-          },
-          body: JSON.stringify({
-            basketId,
-            creatorCode:
-              normalizedCode,
-            username,
-          }),
-        }
-      )
+      const response =
+        await fetch(
+          '/api/tebex/basket/creator-code',
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type':
+                'application/json',
+            },
+            body: JSON.stringify({
+              basketId,
+              creatorCode:
+                normalizedCode,
+              username,
+            }),
+          }
+        )
 
       const data =
         await response.json()
@@ -1609,28 +1685,31 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
-        throw new Error(
-          data.error ||
-            'Failed to remove creator code'
+        console.warn(
+          '[Cart] Creator code could not be removed.'
         )
+
+        error(
+          'Failed to remove creator code. Please try again.'
+        )
+
+        return false
       }
 
       await syncBasket()
 
-      toast.info(
-        'Creator code removed.'
+      info(
+        'Creator code removed successfully.'
       )
 
       return true
-    } catch (error: any) {
-      console.error(
-        'Error removing creator code:',
-        error
+    } catch {
+      console.warn(
+        '[Cart] Could not remove creator code.'
       )
 
-      toast.error(
-        error?.message ||
-          'Failed to remove creator code.'
+      error(
+        'Failed to remove creator code. Please try again.'
       )
 
       return false
@@ -1639,6 +1718,9 @@ export function CartProvider({
     }
   }
 
+  /*
+   * Clear cart.
+   */
   const clearCart = () => {
     resetCartState()
 
@@ -1648,9 +1730,12 @@ export function CartProvider({
       )
     }
 
-    toast.info('Cart cleared')
+    info('Cart cleared.')
   }
 
+  /*
+   * Get cart total.
+   */
   const getTotal = () => {
     return items.reduce(
       (sum, item) =>
@@ -1661,6 +1746,9 @@ export function CartProvider({
     )
   }
 
+  /*
+   * Get total item count.
+   */
   const getItemCount = () => {
     return items.reduce(
       (sum, item) =>
@@ -1670,49 +1758,62 @@ export function CartProvider({
     )
   }
 
+  /*
+   * Start Tebex checkout.
+   */
   const checkout =
     async (): Promise<string | null> => {
-      if (!basketId) return null
-
-      if (!username) {
-        toast.warning(
-          'Please login first.'
+      if (!basketId) {
+        warning(
+          'Your cart is empty.'
         )
+
         return null
       }
 
       try {
         setIsLoading(true)
 
-        const response = await fetch(
-          '/api/tebex/checkout',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify({
-              basketId,
-            }),
-          }
-        )
+        const response =
+          await fetch(
+            '/api/tebex/checkout',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type':
+                  'application/json',
+              },
+              body: JSON.stringify({
+                basketId,
+              }),
+            }
+          )
 
         const data =
           await response.json()
 
-        if (data.success) {
+        if (
+          data.success &&
+          data.checkoutUrl
+        ) {
           return data.checkoutUrl
         }
 
-        return null
-      } catch (error) {
-        console.error(
-          'Error during checkout:',
-          error
+        console.warn(
+          '[Cart] Could not start checkout.'
         )
 
-        toast.error(
+        error(
+          'Failed to start checkout. Please try again.'
+        )
+
+        return null
+      } catch {
+        console.warn(
+          '[Cart] Could not start checkout.'
+        )
+
+        error(
           'Failed to start checkout. Please try again.'
         )
 
@@ -1728,7 +1829,6 @@ export function CartProvider({
         items,
         basketId,
         isLoading,
-
         couponCode,
         couponDiscount,
         basketSubtotal,
@@ -1742,10 +1842,8 @@ export function CartProvider({
         removeItem,
         updateQuantity,
         clearCart,
-
         getTotal,
         getItemCount,
-
         checkout,
         syncBasket,
 
@@ -1776,4 +1874,3 @@ export function useCart() {
 
   return context
 }
-

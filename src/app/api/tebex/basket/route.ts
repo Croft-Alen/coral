@@ -244,8 +244,8 @@ export async function POST(request: Request) {
     const basket =
       await client.createMinecraftBasket(
         username.trim(),
-        `${siteUrl}/store/complete`,
-        `${siteUrl}/store`
+       `${siteUrl}/complete`,
+`${siteUrl}/`
       )
 
     await client.addPackageToBasket(

@@ -1,10 +1,11 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
-
 import './globals.css'
 
-import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import Providers from '@/components/providers/Providers'
+import { StoreHeader } from '@/components/layout/StoreHeader'
+import { StoreHero } from '@/components/layout/StoreHero'
+import { StoreFooter } from '@/components/layout/StoreFooter'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -31,22 +32,15 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="antialiased bg-pageBg text-text-body">
-        {children}
+        <Providers>
+          <StoreHeader />
+          <StoreHero />
 
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="dark"
-        />
+          {children}
+
+          <StoreFooter />
+        </Providers>
       </body>
     </html>
   )
 }
-
