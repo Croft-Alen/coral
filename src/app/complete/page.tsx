@@ -11,8 +11,11 @@ export default function CompletePage() {
   const [isComplete, setIsComplete] = useState(false)
 
   /*
-   * Prevent the payment verification from running again after
-   * clearCart() sets basketId back to null.
+   * Prevent verification from starting more than once.
+   *
+   * clearCart() sets basketId to null. Without this ref,
+   * changing basketId after clearCart() could cause the
+   * verification effect to run again.
    */
   const verificationStartedRef = useRef(false)
 
@@ -21,28 +24,40 @@ export default function CompletePage() {
 
     const verifyPayment = async () => {
       /*
-       * Once payment has already been verified, do nothing.
-       *
-       * This is important because clearCart() removes the basketId,
-       * which causes this effect to run again.
+       * Never start payment verification twice.
        */
       if (verificationStartedRef.current) {
         return
       }
 
       /*
-       * CartContext needs time to hydrate the basket ID from
-       * localStorage after /complete loads.
+       * CartContext needs time to hydrate the existing
+       * basket ID from localStorage.
        *
-       * Do NOT redirect while basketId is temporarily null.
+       * While this is happening, simply wait.
        */
-      if (isLoading || !basketId) {
+      if (isLoading) {
+        return
+      }
+
+      /*
+       * No basket ID yet.
+       *
+       * Do not redirect and do not clear anything.
+       *
+       * The page remains mounted and visible while
+       * CartContext finishes its lifecycle.
+       */
+      if (!basketId) {
+        console.warn('[Complete] Waiting for basket ID...')
         return
       }
 
       verificationStartedRef.current = true
 
       try {
+        console.log('[Complete] Verifying basket:', basketId)
+
         const response = await fetch(
           `/api/tebex/basket?basketId=${encodeURIComponent(basketId)}`,
           {
@@ -53,7 +68,9 @@ export default function CompletePage() {
 
         const data = await response.json()
 
-        if (cancelled) return
+        if (cancelled) {
+          return
+        }
 
         if (!response.ok || !data.success || !data.data) {
           console.error('[Complete] Failed to fetch basket:', data)
@@ -62,14 +79,18 @@ export default function CompletePage() {
           return
         }
 
-        console.log('[Complete] Basket:', data.data)
+        const basket = data.data
+
+        console.log('[Complete] Basket:', basket)
 
         /*
-         * Only consider the payment complete when Tebex
-         * explicitly reports complete === true.
+         * Tebex is the source of truth.
+         *
+         * Only clear the local cart when Tebex
+         * explicitly reports the basket as complete.
          */
-        if (data.data.complete !== true) {
-          console.warn('[Complete] Basket is not complete:', data.data)
+        if (basket.complete !== true) {
+          console.warn('[Complete] Basket is not complete:', basket)
           verificationStartedRef.current = false
           window.location.replace('/')
           return
@@ -78,31 +99,37 @@ export default function CompletePage() {
         /*
          * PAYMENT SUCCESSFULLY VERIFIED.
          *
-         * The Tebex basket has already been completed.
+         * Clear the local cart now.
          *
-         * Clear the local shopping cart so the purchased
-         * products are not left in the user's active cart.
+         * This clears:
          *
-         * This also:
+         * - cart items
+         * - basket ID
+         * - coupons
+         * - gift cards
+         * - creator code
+         * - basket pricing
+         * - persisted cart storage
          *
-         * - clears items
-         * - clears basketId
-         * - clears coupons
-         * - clears gift cards
-         * - clears creator code
-         * - clears basket pricing
-         * - removes the persisted cart from localStorage
+         * The completed Tebex basket is NOT modified.
          *
-         * The next item added after returning to the store
-         * will therefore create a fresh Tebex basket.
+         * The next product added after returning to
+         * the store will therefore create a fresh basket.
          */
         clearCart()
 
-        if (cancelled) return
+        if (cancelled) {
+          return
+        }
 
         setIsComplete(true)
+
+        console.log('[Complete] Payment verified and local cart cleared.')
       } catch (error) {
-        if (cancelled) return
+        if (cancelled) {
+          return
+        }
+
         console.error('[Complete] Failed to verify completed payment:', error)
         verificationStartedRef.current = false
         window.location.replace('/')
@@ -116,30 +143,42 @@ export default function CompletePage() {
     }
   }, [basketId, isLoading, clearCart])
 
-  if (!isComplete) {
-    return null
-  }
-
   return (
     <StoreLayout sidebar={<StoreSidebar />}>
       <div className="relative z-20 mt-4 pb-12">
         <div className="bg-cardBg p-6 sm:p-8 shadow-lg">
           <div className="flex flex-col items-center justify-center text-center py-8 sm:py-12">
+            {/* Success icon */}
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-brand/10 mb-6">
               <FaCheckCircle className="w-12 h-12 text-brand" />
             </div>
+
+            {/* Main heading */}
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-heading">
               Payment Complete
             </h1>
+
+            {/* Message */}
             <p className="mt-3 text-sm sm:text-base text-text-muted">
-              Thank you for your purchase!
+              {isComplete ? 'Thank you for your purchase!' : 'Verifying your payment...'}
             </p>
-            <a
-              href="/"
-              className="mt-8 inline-flex items-center justify-center h-11 px-6 rounded-md bg-brand text-white font-medium hover:brightness-105 transition-all"
-            >
-              Return to Store
-            </a>
+
+            {/* Verification status */}
+            {!isComplete && (
+              <div className="mt-6 text-sm text-text-muted">
+                Please wait a moment while we confirm your payment.
+              </div>
+            )}
+
+            {/* Return button */}
+            {isComplete && (
+              <a
+                href="/"
+                className="mt-8 inline-flex items-center justify-center h-11 px-6 rounded-md bg-brand text-white font-medium hover:brightness-105 transition-all"
+              >
+                Return to Store
+              </a>
+            )}
           </div>
         </div>
       </div>
