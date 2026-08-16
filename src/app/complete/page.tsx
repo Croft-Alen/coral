@@ -14,9 +14,9 @@ export default function CompletePage() {
   useEffect(() => {
     const verifyPayment = async () => {
       if (!basketId) {
-        window.location.replace('/')
-        return
-      }
+  console.log('No basket ID yet')
+  return
+}
 
       try {
         const response = await fetch(
@@ -28,14 +28,7 @@ export default function CompletePage() {
 
         const data = await response.json()
 
-        if (
-          !response.ok ||
-          !data.success ||
-          data.data?.complete !== true
-        ) {
-          window.location.replace('/')
-          return
-        }
+       console.log('Basket:', data.data)
 
         setIsComplete(true)
       } catch (error) {
