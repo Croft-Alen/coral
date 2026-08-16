@@ -1,28 +1,46 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FaCheckCircle } from 'react-icons/fa'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { useCart } from '@/context/CartContext'
 
 export default function CompletePage() {
-  const { basketId, isLoading } = useCart()
+  const { basketId, isLoading, clearCart } = useCart()
   const [isComplete, setIsComplete] = useState(false)
+
+  /*
+   * Prevent the payment verification from running again after
+   * clearCart() sets basketId back to null.
+   */
+  const verificationStartedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
 
     const verifyPayment = async () => {
       /*
-       * CartContext needs time to hydrate the basket ID from
-       * localStorage after the /complete page loads.
+       * Once payment has already been verified, do nothing.
        *
-       * Do NOT redirect when basketId is temporarily null.
+       * This is important because clearCart() removes the basketId,
+       * which causes this effect to run again.
+       */
+      if (verificationStartedRef.current) {
+        return
+      }
+
+      /*
+       * CartContext needs time to hydrate the basket ID from
+       * localStorage after /complete loads.
+       *
+       * Do NOT redirect while basketId is temporarily null.
        */
       if (isLoading || !basketId) {
         return
       }
+
+      verificationStartedRef.current = true
 
       try {
         const response = await fetch(
@@ -37,48 +55,56 @@ export default function CompletePage() {
 
         if (cancelled) return
 
-        if (
-          !response.ok ||
-          !data.success ||
-          !data.data
-        ) {
-          console.error(
-            '[Complete] Failed to fetch basket:',
-            data
-          )
-
+        if (!response.ok || !data.success || !data.data) {
+          console.error('[Complete] Failed to fetch basket:', data)
+          verificationStartedRef.current = false
           window.location.replace('/')
           return
         }
 
-        console.log(
-          '[Complete] Basket:',
-          data.data
-        )
+        console.log('[Complete] Basket:', data.data)
 
         /*
-         * The payment is only considered complete when
-         * Tebex explicitly reports complete === true.
+         * Only consider the payment complete when Tebex
+         * explicitly reports complete === true.
          */
         if (data.data.complete !== true) {
-          console.warn(
-            '[Complete] Basket is not complete:',
-            data.data
-          )
-
+          console.warn('[Complete] Basket is not complete:', data.data)
+          verificationStartedRef.current = false
           window.location.replace('/')
           return
         }
+
+        /*
+         * PAYMENT SUCCESSFULLY VERIFIED.
+         *
+         * The Tebex basket has already been completed.
+         *
+         * Clear the local shopping cart so the purchased
+         * products are not left in the user's active cart.
+         *
+         * This also:
+         *
+         * - clears items
+         * - clears basketId
+         * - clears coupons
+         * - clears gift cards
+         * - clears creator code
+         * - clears basket pricing
+         * - removes the persisted cart from localStorage
+         *
+         * The next item added after returning to the store
+         * will therefore create a fresh Tebex basket.
+         */
+        clearCart()
+
+        if (cancelled) return
 
         setIsComplete(true)
       } catch (error) {
         if (cancelled) return
-
-        console.error(
-          '[Complete] Failed to verify completed payment:',
-          error
-        )
-
+        console.error('[Complete] Failed to verify completed payment:', error)
+        verificationStartedRef.current = false
         window.location.replace('/')
       }
     }
@@ -88,7 +114,7 @@ export default function CompletePage() {
     return () => {
       cancelled = true
     }
-  }, [basketId, isLoading])
+  }, [basketId, isLoading, clearCart])
 
   if (!isComplete) {
     return null
@@ -102,15 +128,12 @@ export default function CompletePage() {
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-brand/10 mb-6">
               <FaCheckCircle className="w-12 h-12 text-brand" />
             </div>
-
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-heading">
               Payment Complete
             </h1>
-
             <p className="mt-3 text-sm sm:text-base text-text-muted">
               Thank you for your purchase!
             </p>
-
             <a
               href="/"
               className="mt-8 inline-flex items-center justify-center h-11 px-6 rounded-md bg-brand text-white font-medium hover:brightness-105 transition-all"
