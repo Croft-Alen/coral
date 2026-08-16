@@ -35,6 +35,7 @@ interface TebexGiftCard {
 interface CartContextType {
   items: CartItem[]
   basketId: string | null
+  basketComplete: boolean | null
   isLoading: boolean
   couponCode: string | null
   couponDiscount: number
@@ -107,8 +108,17 @@ export function CartProvider({
   children: ReactNode
 }) {
   const [items, setItems] = useState<CartItem[]>([])
+
   const [basketId, setBasketId] =
     useState<string | null>(null)
+
+  /*
+   * null = basket has not been verified yet.
+   * true = Tebex says the basket is complete.
+   * false = Tebex says the basket is not complete.
+   */
+  const [basketComplete, setBasketComplete] =
+    useState<boolean | null>(null)
 
   const [isLoading, setIsLoading] =
     useState(true)
@@ -170,6 +180,7 @@ export function CartProvider({
   const resetCartState = useCallback(() => {
     setItems([])
     setBasketId(null)
+    setBasketComplete(null)
     setCouponCode(null)
     setCouponDiscount(0)
     setBasketSubtotal(0)
@@ -184,18 +195,13 @@ export function CartProvider({
   }, [])
 
   /*
-   * Handle an explicitly empty Tebex basket.
-   *
-   * IMPORTANT:
-   * This should only be called when Tebex explicitly returns
-   * packages: [].
-   *
-   * A missing packages field is NOT treated as an empty basket.
+   * Handle an empty Tebex basket.
    */
   const handleEmptyBasket = useCallback(
     (storageKey: string | null) => {
       setItems([])
       setBasketId(null)
+      setBasketComplete(null)
       setCouponCode(null)
       setCouponDiscount(0)
       setBasketSubtotal(0)
@@ -208,9 +214,7 @@ export function CartProvider({
       initialSyncBasketRef.current = null
 
       if (storageKey) {
-        localStorage.removeItem(
-          storageKey
-        )
+        localStorage.removeItem(storageKey)
       }
     },
     []
@@ -310,6 +314,14 @@ export function CartProvider({
           setBasketId(parsed.basketId)
         }
 
+        /*
+         * Do not restore basketComplete from localStorage.
+         *
+         * Completion is payment state and must be
+         * verified from the current Tebex basket.
+         */
+        setBasketComplete(null)
+
         if (
           typeof parsed.couponCode === 'string' &&
           parsed.couponCode.trim()
@@ -347,9 +359,7 @@ export function CartProvider({
             parsed.basketTax
           )
         ) {
-          setBasketTax(
-            parsed.basketTax
-          )
+          setBasketTax(parsed.basketTax)
         }
 
         if (
@@ -403,6 +413,9 @@ export function CartProvider({
 
   /*
    * Persist cart to localStorage.
+   *
+   * basketComplete is intentionally NOT persisted.
+   * Payment completion must always come from Tebex.
    */
   useEffect(() => {
     if (!isHydrated) return
@@ -579,53 +592,145 @@ export function CartProvider({
 
   /*
    * Apply a Tebex basket response.
+   *
+   * IMPORTANT:
+   * basket.complete is now the single source of truth
+   * for payment completion.
    */
   const applyBasket = useCallback(
     (basket: any) => {
       if (!basket) return
 
-      /*
-       * IMPORTANT:
-       *
-       * Do not assume a missing packages property means
-       * that the basket is empty.
-       *
-       * Only an explicitly returned packages: [] means
-       * that Tebex says the basket has no products.
-       */
-      const hasPackagesProperty =
-        Object.prototype.hasOwnProperty.call(
-          basket,
-          'packages'
-        )
-
-      if (!hasPackagesProperty) {
-        console.warn(
-          '[Cart] Tebex response has no packages field. Preserving existing cart.'
-        )
-
-        /*
-         * Still synchronize pricing / discount metadata
-         * if Tebex supplied them.
-         */
-      }
-
       const packages =
-        hasPackagesProperty &&
         Array.isArray(
           basket.packages
         )
           ? basket.packages
-          : null
+          : []
 
       /*
-       * Only clear the cart when Tebex explicitly
-       * confirms packages: [].
+       * Update completion state BEFORE handling
+       * empty-basket logic.
+       *
+       * This matters because Tebex can return a
+       * completed basket during the payment flow.
        */
       if (
-        packages !== null &&
-        packages.length === 0
+        typeof basket.complete === 'boolean'
       ) {
+        setBasketComplete(
+          basket.complete
+        )
+      } else {
+        setBasketComplete(null)
+      }
+
+      if (packages.length === 0) {
+        /*
+         * Do not blindly interpret an empty completed
+         * basket as an invalid basket.
+         *
+         * A completed Tebex basket can legitimately
+         * have its contents changed/cleared after checkout.
+         */
+        if (basket.complete === true) {
+          if (basket.ident) {
+            setBasketId(
+              basket.ident
+            )
+          }
+
+          const basePrice =
+            Number(
+              basket.base_price
+            )
+
+          const salesTax =
+            Number(
+              basket.sales_tax
+            )
+
+          const totalPrice =
+            Number(
+              basket.total_price
+            )
+
+          if (
+            Number.isFinite(
+              basePrice
+            )
+          ) {
+            setBasketSubtotal(
+              Math.max(
+                0,
+                basePrice
+              )
+            )
+          }
+
+          if (
+            Number.isFinite(
+              salesTax
+            )
+          ) {
+            setBasketTax(
+              Math.max(
+                0,
+                salesTax
+              )
+            )
+          }
+
+          if (
+            Number.isFinite(
+              totalPrice
+            )
+          ) {
+            setBasketTotal(
+              Math.max(
+                0,
+                totalPrice
+              )
+            )
+          }
+
+          const tebexCoupons =
+            Array.isArray(
+              basket.coupons
+            )
+              ? basket.coupons
+              : []
+
+          setCoupons(
+            tebexCoupons
+          )
+
+          const tebexGiftCards =
+            Array.isArray(
+              basket.giftcards
+            )
+              ? basket.giftcards
+              : []
+
+          setGiftCards(
+            tebexGiftCards
+          )
+
+          if (
+            typeof basket.creator_code ===
+              'string' &&
+            basket.creator_code.trim()
+          ) {
+            setCreatorCode(
+              basket.creator_code
+            )
+          } else {
+            setCreatorCode(null)
+          }
+
+          return
+        }
+
         handleEmptyBasket(
           cartStorageKey
         )
@@ -633,25 +738,14 @@ export function CartProvider({
         return
       }
 
-      /*
-       * If Tebex supplied packages, map them normally.
-       *
-       * If it didn't supply packages at all, preserve the
-       * existing local items instead of replacing them.
-       */
-      if (packages !== null) {
-        const mappedItems =
-          mapBasketItems(packages)
+      const mappedItems =
+        mapBasketItems(packages)
 
-        setItems(mappedItems)
-      }
+      setItems(mappedItems)
 
-      /*
-       * Always preserve/synchronize the current basket ID.
-       */
       if (basket.ident) {
         setBasketId(
-          String(basket.ident)
+          basket.ident
         )
       }
 
@@ -709,94 +803,60 @@ export function CartProvider({
         )
       }
 
-      /*
-       * Coupons.
-       */
-      if (
-        Object.prototype.hasOwnProperty.call(
-          basket,
-          'coupons'
+      const tebexCoupons =
+        Array.isArray(
+          basket.coupons
         )
-      ) {
-        const tebexCoupons =
-          Array.isArray(
-            basket.coupons
-          )
-            ? basket.coupons
-            : []
+          ? basket.coupons
+          : []
 
-        setCoupons(
-          tebexCoupons
-        )
+      setCoupons(
+        tebexCoupons
+      )
+
+      if (
+        tebexCoupons.length > 0
+      ) {
+        const firstCoupon =
+          tebexCoupons[0]
 
         if (
-          tebexCoupons.length > 0
+          firstCoupon &&
+          typeof firstCoupon.coupon_code ===
+            'string'
         ) {
-          const firstCoupon =
-            tebexCoupons[0]
-
-          if (
-            firstCoupon &&
-            typeof firstCoupon.coupon_code ===
-              'string'
-          ) {
-            setCouponCode(
-              firstCoupon.coupon_code
-            )
-          }
-        } else {
-          setCouponCode(null)
-        }
-      }
-
-      /*
-       * Gift cards.
-       */
-      if (
-        Object.prototype.hasOwnProperty.call(
-          basket,
-          'giftcards'
-        )
-      ) {
-        const tebexGiftCards =
-          Array.isArray(
-            basket.giftcards
+          setCouponCode(
+            firstCoupon.coupon_code
           )
-            ? basket.giftcards
-            : []
-
-        setGiftCards(
-          tebexGiftCards
-        )
-      }
-
-      /*
-       * Creator code.
-       */
-      if (
-        Object.prototype.hasOwnProperty.call(
-          basket,
-          'creator_code'
-        )
-      ) {
-        if (
-          typeof basket.creator_code ===
-            'string' &&
-          basket.creator_code.trim()
-        ) {
-          setCreatorCode(
-            basket.creator_code
-          )
-        } else {
-          setCreatorCode(null)
         }
+      } else {
+        setCouponCode(null)
+        setCouponDiscount(0)
       }
 
-      /*
-       * Tebex remains the pricing source of truth.
-       *
-       * This is retained for the existing pricing behavior.
-       */
+      const tebexGiftCards =
+        Array.isArray(
+          basket.giftcards
+        )
+          ? basket.giftcards
+          : []
+
+      setGiftCards(
+        tebexGiftCards
+      )
+
+      if (
+        typeof basket.creator_code ===
+          'string' &&
+        basket.creator_code.trim()
+      ) {
+        setCreatorCode(
+          basket.creator_code
+        )
+      } else {
+        setCreatorCode(null)
+      }
+
       if (
         Number.isFinite(
           basePrice
@@ -826,6 +886,9 @@ export function CartProvider({
 
   /*
    * Sync current basket with Tebex.
+   *
+   * This is now the ONLY basket fetch used by
+   * CartContext/CompletePage.
    */
   const syncBasket = useCallback(
     async () => {
@@ -847,41 +910,18 @@ export function CartProvider({
             }
           )
 
-        if (!response.ok) {
-          console.warn(
-            '[Cart] Basket sync request failed:',
-            response.status
-          )
-
-          return
-        }
-
         const data =
           await response.json()
 
         if (
-          data?.success &&
-          data?.data
+          data.success &&
+          data.data
         ) {
           applyBasket(
             data.data
           )
-        } else {
-          /*
-           * IMPORTANT:
-           *
-           * Do not clear local cart state merely because
-           * the API returned an unsuccessful response.
-           */
-          console.warn(
-            '[Cart] Basket sync returned no usable basket. Preserving current cart.'
-          )
         }
       } catch {
-        /*
-         * A failed sync must NEVER destroy the current
-         * locally persisted cart.
-         */
         console.warn(
           '[Cart] Could not sync cart.'
         )
@@ -972,7 +1012,6 @@ export function CartProvider({
           await response.json()
 
         if (
-          !response.ok ||
           !data.success ||
           !data.data
         ) {
@@ -1025,7 +1064,6 @@ export function CartProvider({
           await response.json()
 
         if (
-          !response.ok ||
           !data.success ||
           !data.data
         ) {
@@ -1102,10 +1140,7 @@ export function CartProvider({
       const data =
         await response.json()
 
-      if (
-        !response.ok ||
-        !data.success
-      ) {
+      if (!data.success) {
         console.warn(
           '[Cart] Could not remove item.'
         )
@@ -1202,7 +1237,6 @@ export function CartProvider({
         await response.json()
 
       if (
-        !response.ok ||
         !data.success ||
         !data.data
       ) {
@@ -1515,15 +1549,11 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
-        const errorMessage =
-          String(
-            data?.error ||
-              data?.detail ||
-              ''
-          ).toLowerCase()
-
         if (
-          errorMessage.includes(
+          data.error?.includes(
+            'already applied'
+          ) ||
+          data.detail?.includes(
             'already applied'
           )
         ) {
@@ -1547,11 +1577,6 @@ export function CartProvider({
         return false
       }
 
-      /*
-       * Use the existing basket.
-       *
-       * No basket is created here.
-       */
       await syncBasket()
 
       success(
@@ -1715,15 +1740,11 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
-        const errorMessage =
-          String(
-            data?.error ||
-              data?.detail ||
-              ''
-          ).toLowerCase()
-
         if (
-          errorMessage.includes(
+          data.error?.includes(
+            'already applied'
+          ) ||
+          data.detail?.includes(
             'already applied'
           )
         ) {
@@ -1921,6 +1942,15 @@ export function CartProvider({
           data.success &&
           data.checkoutUrl
         ) {
+          /*
+           * The basket is going to checkout.
+           * Do not mark it complete here.
+           *
+           * Complete status will be obtained from
+           * Tebex after the user returns.
+           */
+          setBasketComplete(null)
+
           return data.checkoutUrl
         }
 
@@ -1953,6 +1983,7 @@ export function CartProvider({
       value={{
         items,
         basketId,
+        basketComplete,
         isLoading,
         couponCode,
         couponDiscount,

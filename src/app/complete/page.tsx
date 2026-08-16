@@ -8,72 +8,78 @@ import { useCart } from '@/context/CartContext'
 
 export default function CompletePage() {
   const { basketId, isLoading } = useCart()
-
   const [isComplete, setIsComplete] = useState(false)
 
   useEffect(() => {
-    /*
-     * Wait for CartContext to finish restoring
-     * the persisted basket before verifying payment.
-     *
-     * This prevents the /complete page from treating
-     * the initial null basketId as a missing basket.
-     */
-    if (isLoading) {
-      return
-    }
-
-    if (!basketId) {
-      console.warn(
-        '[Complete] No basket ID available after cart hydration.'
-      )
-      window.location.replace('/')
-      return
-    }
-
     let cancelled = false
 
     const verifyPayment = async () => {
+      /*
+       * CartContext needs time to hydrate the basket ID from
+       * localStorage after the /complete page loads.
+       *
+       * Do NOT redirect when basketId is temporarily null.
+       */
+      if (isLoading || !basketId) {
+        return
+      }
+
       try {
         const response = await fetch(
           `/api/tebex/basket?basketId=${encodeURIComponent(basketId)}`,
           {
+            method: 'GET',
             cache: 'no-store',
           }
         )
 
         const data = await response.json()
 
-        console.log('[Complete] Basket:', data.data)
+        if (cancelled) return
 
         if (
           !response.ok ||
           !data.success ||
-          data.data?.complete !== true
+          !data.data
         ) {
-          console.warn(
-            '[Complete] Basket is not marked as complete.'
+          console.error(
+            '[Complete] Failed to fetch basket:',
+            data
           )
 
-          if (!cancelled) {
-            window.location.replace('/')
-          }
-
+          window.location.replace('/')
           return
         }
 
-        if (!cancelled) {
-          setIsComplete(true)
+        console.log(
+          '[Complete] Basket:',
+          data.data
+        )
+
+        /*
+         * The payment is only considered complete when
+         * Tebex explicitly reports complete === true.
+         */
+        if (data.data.complete !== true) {
+          console.warn(
+            '[Complete] Basket is not complete:',
+            data.data
+          )
+
+          window.location.replace('/')
+          return
         }
+
+        setIsComplete(true)
       } catch (error) {
+        if (cancelled) return
+
         console.error(
           '[Complete] Failed to verify completed payment:',
           error
         )
 
-        if (!cancelled) {
-          window.location.replace('/')
-        }
+        window.location.replace('/')
       }
     }
 
