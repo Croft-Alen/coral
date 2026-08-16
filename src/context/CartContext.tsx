@@ -112,11 +112,6 @@ export function CartProvider({
   const [basketId, setBasketId] =
     useState<string | null>(null)
 
-  /*
-   * null = basket has not been verified yet.
-   * true = Tebex says the basket is complete.
-   * false = Tebex says the basket is not complete.
-   */
   const [basketComplete, setBasketComplete] =
     useState<boolean | null>(null)
 
@@ -175,17 +170,23 @@ export function CartProvider({
     : null
 
   /*
-   * Reset all cart state.
+   * Reset all local cart state.
+   *
+   * This does NOT modify the Tebex basket remotely.
+   * It only clears this browser's active shopping-cart state.
    */
   const resetCartState = useCallback(() => {
     setItems([])
     setBasketId(null)
     setBasketComplete(null)
+
     setCouponCode(null)
     setCouponDiscount(0)
+
     setBasketSubtotal(0)
     setBasketTax(0)
     setBasketTotal(0)
+
     setCoupons([])
     setGiftCards([])
     setCreatorCode(null)
@@ -195,18 +196,21 @@ export function CartProvider({
   }, [])
 
   /*
-   * Handle an empty Tebex basket.
+   * Handle an actually empty active basket.
    */
   const handleEmptyBasket = useCallback(
     (storageKey: string | null) => {
       setItems([])
       setBasketId(null)
-      setBasketComplete(null)
+      setBasketComplete(false)
+
       setCouponCode(null)
       setCouponDiscount(0)
+
       setBasketSubtotal(0)
       setBasketTax(0)
       setBasketTotal(0)
+
       setCoupons([])
       setGiftCards([])
       setCreatorCode(null)
@@ -221,8 +225,51 @@ export function CartProvider({
   )
 
   /*
-   * Migrate old username-based cart storage
-   * to stable usernameId-based storage.
+   * IMPORTANT:
+   *
+   * A completed Tebex basket is NOT an active shopping basket anymore.
+   *
+   * Once payment has completed, the products in that basket must not
+   * be restored into the user's local cart.
+   *
+   * This is the critical post-payment lifecycle fix.
+   */
+  const handleCompletedBasket = useCallback(
+    (storageKey: string | null) => {
+      setItems([])
+
+      /*
+       * Keep the completed state briefly so the current page can know
+       * that Tebex reported completion.
+       *
+       * basketId is cleared because this basket must never become the
+       * user's next active shopping basket.
+       */
+      setBasketComplete(true)
+      setBasketId(null)
+
+      setCouponCode(null)
+      setCouponDiscount(0)
+
+      setBasketSubtotal(0)
+      setBasketTax(0)
+      setBasketTotal(0)
+
+      setCoupons([])
+      setGiftCards([])
+      setCreatorCode(null)
+
+      initialSyncBasketRef.current = null
+
+      if (storageKey) {
+        localStorage.removeItem(storageKey)
+      }
+    },
+    []
+  )
+
+  /*
+   * Migrate old username-based cart storage to stable usernameId storage.
    */
   useEffect(() => {
     if (!usernameId) return
@@ -301,9 +348,12 @@ export function CartProvider({
         )
 
       if (saved) {
-        const parsed = JSON.parse(saved)
+        const parsed =
+          JSON.parse(saved)
 
-        if (Array.isArray(parsed.items)) {
+        if (
+          Array.isArray(parsed.items)
+        ) {
           setItems(parsed.items)
         }
 
@@ -315,10 +365,7 @@ export function CartProvider({
         }
 
         /*
-         * Do not restore basketComplete from localStorage.
-         *
-         * Completion is payment state and must be
-         * verified from the current Tebex basket.
+         * Never restore payment completion from localStorage.
          */
         setBasketComplete(null)
 
@@ -326,7 +373,9 @@ export function CartProvider({
           typeof parsed.couponCode === 'string' &&
           parsed.couponCode.trim()
         ) {
-          setCouponCode(parsed.couponCode)
+          setCouponCode(
+            parsed.couponCode
+          )
         }
 
         if (
@@ -359,7 +408,9 @@ export function CartProvider({
             parsed.basketTax
           )
         ) {
-          setBasketTax(parsed.basketTax)
+          setBasketTax(
+            parsed.basketTax
+          )
         }
 
         if (
@@ -374,7 +425,9 @@ export function CartProvider({
           )
         }
 
-        if (Array.isArray(parsed.coupons)) {
+        if (
+          Array.isArray(parsed.coupons)
+        ) {
           setCoupons(parsed.coupons)
         }
 
@@ -412,10 +465,10 @@ export function CartProvider({
   ])
 
   /*
-   * Persist cart to localStorage.
+   * Persist active cart.
    *
-   * basketComplete is intentionally NOT persisted.
-   * Payment completion must always come from Tebex.
+   * Completed baskets are never persisted because the completed basket
+   * lifecycle clears basketId and items.
    */
   useEffect(() => {
     if (!isHydrated) return
@@ -463,8 +516,7 @@ export function CartProvider({
   ])
 
   /*
-   * Convert Tebex basket packages
-   * into CartItem structures.
+   * Convert Tebex packages into CartItem structures.
    */
   const mapBasketItems = useCallback(
     (packages: any[]): CartItem[] => {
@@ -541,9 +593,10 @@ export function CartProvider({
             )
           )
         ) {
-          price = Number(
-            existingItem.price
-          )
+          price =
+            Number(
+              existingItem.price
+            )
         }
 
         const tebexQuantity =
@@ -591,15 +644,44 @@ export function CartProvider({
   )
 
   /*
-   * Apply a Tebex basket response.
+   * Apply Tebex basket response.
    *
-   * IMPORTANT:
-   * basket.complete is now the single source of truth
-   * for payment completion.
+   * CRITICAL PAYMENT FIX:
+   *
+   * basket.complete === true ALWAYS wins.
+   *
+   * We must NOT map completed-basket packages back into local cart.
    */
   const applyBasket = useCallback(
     (basket: any) => {
       if (!basket) return
+
+      /*
+       * COMPLETED BASKET
+       *
+       * This check MUST happen BEFORE looking at packages.
+       *
+       * The previous implementation only handled completed baskets
+       * when packages.length === 0.
+       *
+       * That was the reason a purchased VIP could remain locally.
+       */
+      if (basket.complete === true) {
+        console.log(
+          '[Cart] Tebex basket is complete. Clearing active cart.'
+        )
+
+        handleCompletedBasket(
+          cartStorageKey
+        )
+
+        return
+      }
+
+      /*
+       * Active / incomplete basket.
+       */
+      setBasketComplete(false)
 
       const packages =
         Array.isArray(
@@ -609,128 +691,9 @@ export function CartProvider({
           : []
 
       /*
-       * Update completion state BEFORE handling
-       * empty-basket logic.
-       *
-       * This matters because Tebex can return a
-       * completed basket during the payment flow.
+       * Active basket with no packages.
        */
-      if (
-        typeof basket.complete === 'boolean'
-      ) {
-        setBasketComplete(
-          basket.complete
-        )
-      } else {
-        setBasketComplete(null)
-      }
-
       if (packages.length === 0) {
-        /*
-         * Do not blindly interpret an empty completed
-         * basket as an invalid basket.
-         *
-         * A completed Tebex basket can legitimately
-         * have its contents changed/cleared after checkout.
-         */
-        if (basket.complete === true) {
-          if (basket.ident) {
-            setBasketId(
-              basket.ident
-            )
-          }
-
-          const basePrice =
-            Number(
-              basket.base_price
-            )
-
-          const salesTax =
-            Number(
-              basket.sales_tax
-            )
-
-          const totalPrice =
-            Number(
-              basket.total_price
-            )
-
-          if (
-            Number.isFinite(
-              basePrice
-            )
-          ) {
-            setBasketSubtotal(
-              Math.max(
-                0,
-                basePrice
-              )
-            )
-          }
-
-          if (
-            Number.isFinite(
-              salesTax
-            )
-          ) {
-            setBasketTax(
-              Math.max(
-                0,
-                salesTax
-              )
-            )
-          }
-
-          if (
-            Number.isFinite(
-              totalPrice
-            )
-          ) {
-            setBasketTotal(
-              Math.max(
-                0,
-                totalPrice
-              )
-            )
-          }
-
-          const tebexCoupons =
-            Array.isArray(
-              basket.coupons
-            )
-              ? basket.coupons
-              : []
-
-          setCoupons(
-            tebexCoupons
-          )
-
-          const tebexGiftCards =
-            Array.isArray(
-              basket.giftcards
-            )
-              ? basket.giftcards
-              : []
-
-          setGiftCards(
-            tebexGiftCards
-          )
-
-          if (
-            typeof basket.creator_code ===
-              'string' &&
-            basket.creator_code.trim()
-          ) {
-            setCreatorCode(
-              basket.creator_code
-            )
-          } else {
-            setCreatorCode(null)
-          }
-
-          return
-        }
-
         handleEmptyBasket(
           cartStorageKey
         )
@@ -738,6 +701,10 @@ export function CartProvider({
         return
       }
 
+      /*
+       * Map ONLY packages that are currently present
+       * in the active Tebex basket.
+       */
       const mappedItems =
         mapBasketItems(packages)
 
@@ -803,6 +770,9 @@ export function CartProvider({
         )
       }
 
+      /*
+       * Coupons.
+       */
       const tebexCoupons =
         Array.isArray(
           basket.coupons
@@ -834,6 +804,9 @@ export function CartProvider({
         setCouponDiscount(0)
       }
 
+      /*
+       * Gift cards.
+       */
       const tebexGiftCards =
         Array.isArray(
           basket.giftcards
@@ -845,6 +818,9 @@ export function CartProvider({
         tebexGiftCards
       )
 
+      /*
+       * Creator code.
+       */
       if (
         typeof basket.creator_code ===
           'string' &&
@@ -857,6 +833,9 @@ export function CartProvider({
         setCreatorCode(null)
       }
 
+      /*
+       * Preserve the existing pricing behavior.
+       */
       if (
         Number.isFinite(
           basePrice
@@ -879,21 +858,22 @@ export function CartProvider({
     },
     [
       cartStorageKey,
+      handleCompletedBasket,
       handleEmptyBasket,
       mapBasketItems,
     ]
   )
 
   /*
-   * Sync current basket with Tebex.
-   *
-   * This is now the ONLY basket fetch used by
-   * CartContext/CompletePage.
+   * Fetch and synchronize the current basket.
    */
   const syncBasket = useCallback(
     async () => {
       if (!basketId) return
       if (syncingRef.current) return
+
+      const basketToSync =
+        basketId
 
       syncingRef.current = true
 
@@ -903,7 +883,7 @@ export function CartProvider({
         const response =
           await fetch(
             `/api/tebex/basket?basketId=${encodeURIComponent(
-              basketId
+              basketToSync
             )}`,
             {
               cache: 'no-store',
@@ -989,6 +969,9 @@ export function CartProvider({
       let currentBasketId =
         basketId
 
+      /*
+       * No basket yet -> create exactly one.
+       */
       if (!currentBasketId) {
         const response =
           await fetch(
@@ -1040,6 +1023,9 @@ export function CartProvider({
         initialSyncBasketRef.current =
           currentBasketId
       } else {
+        /*
+         * Existing basket -> update it.
+         */
         const response =
           await fetch(
             '/api/tebex/basket',
@@ -1104,21 +1090,31 @@ export function CartProvider({
 
   /*
    * Remove item.
+   *
+   * IMPORTANT:
+   *
+   * If Tebex returns "Package not found", the local cart is stale.
+   *
+   * We do NOT keep showing the stale product.
+   * We fetch Tebex's actual basket and reconcile local state.
    */
   const removeItem = async (
     packageId: number
   ) => {
     if (!basketId) return
 
+    const currentBasketId =
+      basketId
+
+    const removedItem =
+      items.find(
+        item =>
+          item.packageId ===
+          packageId
+      )
+
     try {
       setIsLoading(true)
-
-      const removedItem =
-        items.find(
-          item =>
-            item.packageId ===
-            packageId
-        )
 
       const response =
         await fetch(
@@ -1130,7 +1126,8 @@ export function CartProvider({
                 'application/json',
             },
             body: JSON.stringify({
-              basketId,
+              basketId:
+                currentBasketId,
               packageId,
               username,
             }),
@@ -1140,48 +1137,131 @@ export function CartProvider({
       const data =
         await response.json()
 
-      if (!data.success) {
-        console.warn(
-          '[Cart] Could not remove item.'
-        )
+      /*
+       * Normal successful removal.
+       */
+      if (
+        response.ok &&
+        data.success
+      ) {
+        if (data.data) {
+          applyBasket(
+            data.data
+          )
+        } else {
+          const remainingItems =
+            items.filter(
+              item =>
+                item.packageId !==
+                packageId
+            )
 
-        error(
-          'Failed to remove item from cart. Please try again.'
-        )
+          setItems(
+            remainingItems
+          )
+
+          if (
+            remainingItems.length === 0
+          ) {
+            handleEmptyBasket(
+              cartStorageKey
+            )
+          }
+        }
+
+        if (removedItem) {
+          info(
+            `${removedItem.name} removed from cart`
+          )
+        }
 
         return
       }
 
-      if (data.data) {
-        applyBasket(
-          data.data
-        )
-      } else {
-        const remainingItems =
-          items.filter(
-            item =>
-              item.packageId !==
-              packageId
-          )
+      /*
+       * SPECIAL CASE:
+       *
+       * Tebex says the package no longer exists in the basket.
+       *
+       * This is exactly what happens when the package was already
+       * consumed/completed by the checkout flow but stale localStorage
+       * still thinks it exists.
+       *
+       * Re-fetch the authoritative Tebex basket.
+       */
+      const detail =
+        String(
+          data?.details?.detail ||
+          data?.detail ||
+          data?.error ||
+          ''
+        ).toLowerCase()
 
-        setItems(
-          remainingItems
+      const packageNotFound =
+        detail.includes(
+          'package not found'
         )
 
-        if (
-          remainingItems.length === 0
-        ) {
-          handleEmptyBasket(
-            cartStorageKey
+      if (packageNotFound) {
+        console.warn(
+          '[Cart] Tebex says package is no longer in basket. Reconciling local cart.'
+        )
+
+        try {
+          const basketResponse =
+            await fetch(
+              `/api/tebex/basket?basketId=${encodeURIComponent(
+                currentBasketId
+              )}`,
+              {
+                cache: 'no-store',
+              }
+            )
+
+          const basketData =
+            await basketResponse.json()
+
+          if (
+            basketResponse.ok &&
+            basketData.success &&
+            basketData.data
+          ) {
+            applyBasket(
+              basketData.data
+            )
+
+            /*
+             * If Tebex says the basket is complete,
+             * applyBasket() already cleared the entire
+             * local cart.
+             *
+             * If Tebex says the basket is active,
+             * applyBasket() rebuilds the cart only from
+             * packages actually present in Tebex.
+             */
+            if (removedItem) {
+              info(
+                `${removedItem.name} removed from cart`
+              )
+            }
+
+            return
+          }
+        } catch {
+          console.warn(
+            '[Cart] Could not reconcile basket after package-not-found response.'
           )
         }
       }
 
-      if (removedItem) {
-        info(
-          `${removedItem.name} removed from cart`
-        )
-      }
+      console.warn(
+        '[Cart] Could not remove item.',
+        data
+      )
+
+      error(
+        'Failed to remove item from cart. Please try again.'
+      )
     } catch {
       console.warn(
         '[Cart] Could not remove item.'
@@ -1212,6 +1292,9 @@ export function CartProvider({
 
     if (!basketId) return
 
+    const currentBasketId =
+      basketId
+
     try {
       setIsLoading(true)
 
@@ -1225,7 +1308,8 @@ export function CartProvider({
                 'application/json',
             },
             body: JSON.stringify({
-              basketId,
+              basketId:
+                currentBasketId,
               packageId,
               quantity,
               username,
@@ -1237,9 +1321,59 @@ export function CartProvider({
         await response.json()
 
       if (
+        !response.ok ||
         !data.success ||
         !data.data
       ) {
+        /*
+         * If the basket became completed/stale,
+         * reconcile it instead of leaving stale UI.
+         */
+        const detail =
+          String(
+            data?.details?.detail ||
+            data?.detail ||
+            data?.error ||
+            ''
+          ).toLowerCase()
+
+        if (
+          detail.includes(
+            'package not found'
+          )
+        ) {
+          try {
+            const basketResponse =
+              await fetch(
+                `/api/tebex/basket?basketId=${encodeURIComponent(
+                  currentBasketId
+                )}`,
+                {
+                  cache: 'no-store',
+                }
+              )
+
+            const basketData =
+              await basketResponse.json()
+
+            if (
+              basketResponse.ok &&
+              basketData.success &&
+              basketData.data
+            ) {
+              applyBasket(
+                basketData.data
+              )
+
+              return
+            }
+          } catch {
+            console.warn(
+              '[Cart] Could not reconcile stale basket.'
+            )
+          }
+        }
+
         console.warn(
           '[Cart] Could not update quantity.'
         )
@@ -1256,7 +1390,7 @@ export function CartProvider({
       )
 
       initialSyncBasketRef.current =
-        basketId
+        currentBasketId
     } catch {
       console.warn(
         '[Cart] Could not update quantity.'
@@ -1577,7 +1711,16 @@ export function CartProvider({
         return false
       }
 
-      await syncBasket()
+      /*
+       * Prefer returned Tebex basket if available.
+       */
+      if (data.data) {
+        applyBasket(
+          data.data
+        )
+      } else {
+        await syncBasket()
+      }
 
       success(
         'Gift card applied successfully.'
@@ -1651,7 +1794,13 @@ export function CartProvider({
         return false
       }
 
-      await syncBasket()
+      if (data.data) {
+        applyBasket(
+          data.data
+        )
+      } else {
+        await syncBasket()
+      }
 
       info(
         'Gift card removed successfully.'
@@ -1865,9 +2014,14 @@ export function CartProvider({
   }
 
   /*
-   * Clear cart.
+   * Clear local active cart.
+   *
+   * This intentionally does NOT make a Tebex API request.
+   *
+   * A completed payment should not attempt to "remove" purchased
+   * packages from Tebex's already-completed basket.
    */
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     resetCartState()
 
     if (cartStorageKey) {
@@ -1877,7 +2031,11 @@ export function CartProvider({
     }
 
     info('Cart cleared.')
-  }
+  }, [
+    resetCartState,
+    cartStorageKey,
+    info,
+  ])
 
   /*
    * Get cart total.
@@ -1943,11 +2101,13 @@ export function CartProvider({
           data.checkoutUrl
         ) {
           /*
-           * The basket is going to checkout.
-           * Do not mark it complete here.
+           * Do not clear the cart here.
            *
-           * Complete status will be obtained from
-           * Tebex after the user returns.
+           * The payment has NOT been confirmed yet.
+           *
+           * The cart is cleared when Tebex reports:
+           *
+           * basket.complete === true
            */
           setBasketComplete(null)
 
@@ -1985,11 +2145,14 @@ export function CartProvider({
         basketId,
         basketComplete,
         isLoading,
+
         couponCode,
         couponDiscount,
+
         basketSubtotal,
         basketTax,
         basketTotal,
+
         coupons,
         giftCards,
         creatorCode,
@@ -1997,9 +2160,12 @@ export function CartProvider({
         addItem,
         removeItem,
         updateQuantity,
+
         clearCart,
+
         getTotal,
         getItemCount,
+
         checkout,
         syncBasket,
 
