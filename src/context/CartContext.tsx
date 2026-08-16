@@ -184,7 +184,13 @@ export function CartProvider({
   }, [])
 
   /*
-   * Handle an empty Tebex basket.
+   * Handle an explicitly empty Tebex basket.
+   *
+   * IMPORTANT:
+   * This should only be called when Tebex explicitly returns
+   * packages: [].
+   *
+   * A missing packages field is NOT treated as an empty basket.
    */
   const handleEmptyBasket = useCallback(
     (storageKey: string | null) => {
@@ -202,7 +208,9 @@ export function CartProvider({
       initialSyncBasketRef.current = null
 
       if (storageKey) {
-        localStorage.removeItem(storageKey)
+        localStorage.removeItem(
+          storageKey
+        )
       }
     },
     []
@@ -339,7 +347,9 @@ export function CartProvider({
             parsed.basketTax
           )
         ) {
-          setBasketTax(parsed.basketTax)
+          setBasketTax(
+            parsed.basketTax
+          )
         }
 
         if (
@@ -574,14 +584,48 @@ export function CartProvider({
     (basket: any) => {
       if (!basket) return
 
+      /*
+       * IMPORTANT:
+       *
+       * Do not assume a missing packages property means
+       * that the basket is empty.
+       *
+       * Only an explicitly returned packages: [] means
+       * that Tebex says the basket has no products.
+       */
+      const hasPackagesProperty =
+        Object.prototype.hasOwnProperty.call(
+          basket,
+          'packages'
+        )
+
+      if (!hasPackagesProperty) {
+        console.warn(
+          '[Cart] Tebex response has no packages field. Preserving existing cart.'
+        )
+
+        /*
+         * Still synchronize pricing / discount metadata
+         * if Tebex supplied them.
+         */
+      }
+
       const packages =
+        hasPackagesProperty &&
         Array.isArray(
           basket.packages
         )
           ? basket.packages
-          : []
+          : null
 
-      if (packages.length === 0) {
+      /*
+       * Only clear the cart when Tebex explicitly
+       * confirms packages: [].
+       */
+      if (
+        packages !== null &&
+        packages.length === 0
+      ) {
         handleEmptyBasket(
           cartStorageKey
         )
@@ -589,14 +633,25 @@ export function CartProvider({
         return
       }
 
-      const mappedItems =
-        mapBasketItems(packages)
+      /*
+       * If Tebex supplied packages, map them normally.
+       *
+       * If it didn't supply packages at all, preserve the
+       * existing local items instead of replacing them.
+       */
+      if (packages !== null) {
+        const mappedItems =
+          mapBasketItems(packages)
 
-      setItems(mappedItems)
+        setItems(mappedItems)
+      }
 
+      /*
+       * Always preserve/synchronize the current basket ID.
+       */
       if (basket.ident) {
         setBasketId(
-          basket.ident
+          String(basket.ident)
         )
       }
 
@@ -654,60 +709,94 @@ export function CartProvider({
         )
       }
 
-      const tebexCoupons =
-        Array.isArray(
-          basket.coupons
-        )
-          ? basket.coupons
-          : []
-
-      setCoupons(
-        tebexCoupons
-      )
-
+      /*
+       * Coupons.
+       */
       if (
-        tebexCoupons.length > 0
+        Object.prototype.hasOwnProperty.call(
+          basket,
+          'coupons'
+        )
       ) {
-        const firstCoupon =
-          tebexCoupons[0]
+        const tebexCoupons =
+          Array.isArray(
+            basket.coupons
+          )
+            ? basket.coupons
+            : []
+
+        setCoupons(
+          tebexCoupons
+        )
 
         if (
-          firstCoupon &&
-          typeof firstCoupon.coupon_code ===
-            'string'
+          tebexCoupons.length > 0
         ) {
-          setCouponCode(
-            firstCoupon.coupon_code
-          )
+          const firstCoupon =
+            tebexCoupons[0]
+
+          if (
+            firstCoupon &&
+            typeof firstCoupon.coupon_code ===
+              'string'
+          ) {
+            setCouponCode(
+              firstCoupon.coupon_code
+            )
+          }
+        } else {
+          setCouponCode(null)
         }
-      } else {
-        setCouponCode(null)
-        setCouponDiscount(0)
       }
 
-      const tebexGiftCards =
-        Array.isArray(
-          basket.giftcards
-        )
-          ? basket.giftcards
-          : []
-
-      setGiftCards(
-        tebexGiftCards
-      )
-
+      /*
+       * Gift cards.
+       */
       if (
-        typeof basket.creator_code ===
-          'string' &&
-        basket.creator_code.trim()
-      ) {
-        setCreatorCode(
-          basket.creator_code
+        Object.prototype.hasOwnProperty.call(
+          basket,
+          'giftcards'
         )
-      } else {
-        setCreatorCode(null)
+      ) {
+        const tebexGiftCards =
+          Array.isArray(
+            basket.giftcards
+          )
+            ? basket.giftcards
+            : []
+
+        setGiftCards(
+          tebexGiftCards
+        )
       }
 
+      /*
+       * Creator code.
+       */
+      if (
+        Object.prototype.hasOwnProperty.call(
+          basket,
+          'creator_code'
+        )
+      ) {
+        if (
+          typeof basket.creator_code ===
+            'string' &&
+          basket.creator_code.trim()
+        ) {
+          setCreatorCode(
+            basket.creator_code
+          )
+        } else {
+          setCreatorCode(null)
+        }
+      }
+
+      /*
+       * Tebex remains the pricing source of truth.
+       *
+       * This is retained for the existing pricing behavior.
+       */
       if (
         Number.isFinite(
           basePrice
@@ -758,18 +847,41 @@ export function CartProvider({
             }
           )
 
+        if (!response.ok) {
+          console.warn(
+            '[Cart] Basket sync request failed:',
+            response.status
+          )
+
+          return
+        }
+
         const data =
           await response.json()
 
         if (
-          data.success &&
-          data.data
+          data?.success &&
+          data?.data
         ) {
           applyBasket(
             data.data
           )
+        } else {
+          /*
+           * IMPORTANT:
+           *
+           * Do not clear local cart state merely because
+           * the API returned an unsuccessful response.
+           */
+          console.warn(
+            '[Cart] Basket sync returned no usable basket. Preserving current cart.'
+          )
         }
       } catch {
+        /*
+         * A failed sync must NEVER destroy the current
+         * locally persisted cart.
+         */
         console.warn(
           '[Cart] Could not sync cart.'
         )
@@ -860,6 +972,7 @@ export function CartProvider({
           await response.json()
 
         if (
+          !response.ok ||
           !data.success ||
           !data.data
         ) {
@@ -912,6 +1025,7 @@ export function CartProvider({
           await response.json()
 
         if (
+          !response.ok ||
           !data.success ||
           !data.data
         ) {
@@ -988,7 +1102,10 @@ export function CartProvider({
       const data =
         await response.json()
 
-      if (!data.success) {
+      if (
+        !response.ok ||
+        !data.success
+      ) {
         console.warn(
           '[Cart] Could not remove item.'
         )
@@ -1085,6 +1202,7 @@ export function CartProvider({
         await response.json()
 
       if (
+        !response.ok ||
         !data.success ||
         !data.data
       ) {
@@ -1397,11 +1515,15 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
+        const errorMessage =
+          String(
+            data?.error ||
+              data?.detail ||
+              ''
+          ).toLowerCase()
+
         if (
-          data.error?.includes(
-            'already applied'
-          ) ||
-          data.detail?.includes(
+          errorMessage.includes(
             'already applied'
           )
         ) {
@@ -1425,6 +1547,11 @@ export function CartProvider({
         return false
       }
 
+      /*
+       * Use the existing basket.
+       *
+       * No basket is created here.
+       */
       await syncBasket()
 
       success(
@@ -1588,11 +1715,15 @@ export function CartProvider({
         !response.ok ||
         !data.success
       ) {
+        const errorMessage =
+          String(
+            data?.error ||
+              data?.detail ||
+              ''
+          ).toLowerCase()
+
         if (
-          data.error?.includes(
-            'already applied'
-          ) ||
-          data.detail?.includes(
+          errorMessage.includes(
             'already applied'
           )
         ) {
@@ -1605,12 +1736,6 @@ export function CartProvider({
           return false
         }
 
-        /*
-         * Expected API failure.
-         *
-         * DO NOT throw an Error here.
-         * This prevents a huge browser stack trace.
-         */
         console.warn(
           '[Cart] Creator code could not be applied.'
         )

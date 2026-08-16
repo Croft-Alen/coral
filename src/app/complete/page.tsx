@@ -7,17 +7,33 @@ import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { useCart } from '@/context/CartContext'
 
 export default function CompletePage() {
-  const { basketId } = useCart()
+  const { basketId, isLoading } = useCart()
 
   const [isComplete, setIsComplete] = useState(false)
 
   useEffect(() => {
-    const verifyPayment = async () => {
-      if (!basketId) {
-  console.log('No basket ID yet')
-  return
-}
+    /*
+     * Wait for CartContext to finish restoring
+     * the persisted basket before verifying payment.
+     *
+     * This prevents the /complete page from treating
+     * the initial null basketId as a missing basket.
+     */
+    if (isLoading) {
+      return
+    }
 
+    if (!basketId) {
+      console.warn(
+        '[Complete] No basket ID available after cart hydration.'
+      )
+      window.location.replace('/')
+      return
+    }
+
+    let cancelled = false
+
+    const verifyPayment = async () => {
       try {
         const response = await fetch(
           `/api/tebex/basket?basketId=${encodeURIComponent(basketId)}`,
@@ -28,21 +44,45 @@ export default function CompletePage() {
 
         const data = await response.json()
 
-       console.log('Basket:', data.data)
+        console.log('[Complete] Basket:', data.data)
 
-        setIsComplete(true)
+        if (
+          !response.ok ||
+          !data.success ||
+          data.data?.complete !== true
+        ) {
+          console.warn(
+            '[Complete] Basket is not marked as complete.'
+          )
+
+          if (!cancelled) {
+            window.location.replace('/')
+          }
+
+          return
+        }
+
+        if (!cancelled) {
+          setIsComplete(true)
+        }
       } catch (error) {
         console.error(
-          'Failed to verify completed payment:',
+          '[Complete] Failed to verify completed payment:',
           error
         )
 
-        window.location.replace('/')
+        if (!cancelled) {
+          window.location.replace('/')
+        }
       }
     }
 
     verifyPayment()
-  }, [basketId])
+
+    return () => {
+      cancelled = true
+    }
+  }, [basketId, isLoading])
 
   if (!isComplete) {
     return null
@@ -52,10 +92,7 @@ export default function CompletePage() {
     <StoreLayout sidebar={<StoreSidebar />}>
       <div className="relative z-20 mt-4 pb-12">
         <div className="bg-cardBg p-6 sm:p-8 shadow-lg">
-
-          {/* Success */}
           <div className="flex flex-col items-center justify-center text-center py-8 sm:py-12">
-
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-brand/10 mb-6">
               <FaCheckCircle className="w-12 h-12 text-brand" />
             </div>
@@ -74,9 +111,7 @@ export default function CompletePage() {
             >
               Return to Store
             </a>
-
           </div>
-
         </div>
       </div>
     </StoreLayout>
