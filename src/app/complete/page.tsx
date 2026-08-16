@@ -5,12 +5,20 @@ import { FaCheckCircle } from 'react-icons/fa'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { useCart } from '@/context/CartContext'
+import { useSettings } from '@/context/SettingsContext'
 
 export default function CompletePage() {
+  const { settings } = useSettings()
   const { basketId, isLoading, clearCart } = useCart()
   const [isComplete, setIsComplete] = useState(false)
 
   const verificationStartedRef = useRef(false)
+
+  useEffect(() => {
+    if (settings.siteName) {
+      document.title = `${settings.siteName} | Complete`
+    }
+  }, [settings.siteName])
 
   useEffect(() => {
     let cancelled = false
@@ -49,7 +57,11 @@ export default function CompletePage() {
         }
 
         if (!response.ok || !data.success || !data.data) {
-          console.error('[Complete] Failed to fetch basket:', data)
+          console.error(
+            '[Complete] Failed to fetch basket:',
+            data
+          )
+
           verificationStartedRef.current = false
           window.location.replace('/')
           return
@@ -60,7 +72,11 @@ export default function CompletePage() {
         console.log('[Complete] Basket:', basket)
 
         if (basket.complete !== true) {
-          console.warn('[Complete] Basket is not complete:', basket)
+          console.warn(
+            '[Complete] Basket is not complete:',
+            basket
+          )
+
           verificationStartedRef.current = false
           window.location.replace('/')
           return
@@ -74,13 +90,19 @@ export default function CompletePage() {
 
         setIsComplete(true)
 
-        console.log('[Complete] Payment verified and local cart cleared.')
+        console.log(
+          '[Complete] Payment verified and local cart cleared.'
+        )
       } catch (error) {
         if (cancelled) {
           return
         }
 
-        console.error('[Complete] Failed to verify completed payment:', error)
+        console.error(
+          '[Complete] Failed to verify completed payment:',
+          error
+        )
+
         verificationStartedRef.current = false
         window.location.replace('/')
       }

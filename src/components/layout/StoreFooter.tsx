@@ -1,27 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useSettings } from '@/context/SettingsContext'
 
 export function StoreFooter() {
-  const { settings } = useSettings()
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (settings && settings.siteName) {
-      setLoading(false)
-    }
-  }, [settings])
+  const { settings, isLoading } = useSettings()
 
   return (
     <footer
       className={`shrink-0 bg-cardBg py-6 ${
-        loading ? 'min-h-[104px]' : ''
+        isLoading ? 'min-h-[104px]' : ''
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {loading ? (
-          // Reserve the footer's layout space while settings load.
+        {isLoading ? (
           <div
             aria-hidden="true"
             className="min-h-[56px]"

@@ -20,7 +20,10 @@ export default function VotePage() {
         <div className="p-6 sm:p-8 pt-3">
           <div className="space-y-4">
             {voteData.voteLinks.map((link) => (
-              <VoteCard key={link.id} link={link} />
+              <VoteCard
+                key={link.id}
+                link={link}
+              />
             ))}
           </div>
         </div>

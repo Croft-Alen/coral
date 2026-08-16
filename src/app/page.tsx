@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { StoreDescription } from '@/components/store/StoreDescription'
+import { useSettings } from '@/context/SettingsContext'
 
 interface Webstore {
   description: string
@@ -14,7 +15,15 @@ interface StoreData {
 }
 
 export default function StorePage() {
-  const [storeData, setStoreData] = useState<StoreData | null>(null)
+  const { settings } = useSettings()
+  const [storeData, setStoreData] =
+    useState<StoreData | null>(null)
+
+  useEffect(() => {
+    if (settings.siteName) {
+      document.title = `${settings.siteName} | Home`
+    }
+  }, [settings.siteName])
 
   useEffect(() => {
     const fetchStoreData = async () => {

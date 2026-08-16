@@ -1,11 +1,21 @@
 'use client'
 
+import { useEffect } from 'react'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { StaffCard } from '@/components/store/StaffCard'
+import { useSettings } from '@/context/SettingsContext'
 import staffData from '@/data/staff.json'
 
 export default function StaffPage() {
+  const { settings } = useSettings()
+
+  useEffect(() => {
+    if (settings.siteName) {
+      document.title = `${settings.siteName} | Staff`
+    }
+  }, [settings.siteName])
+
   return (
     <StoreLayout sidebar={<StoreSidebar />}>
       <div className="bg-cardBg shadow-lg rounded-md overflow-hidden">
@@ -27,7 +37,10 @@ export default function StaffPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {category.members.map((member) => (
-                    <StaffCard key={member.id} member={member} />
+                    <StaffCard
+                      key={member.id}
+                      member={member}
+                    />
                   ))}
                 </div>
               </div>

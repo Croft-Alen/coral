@@ -1,11 +1,21 @@
 'use client'
 
+import { useEffect } from 'react'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { RulesList } from '@/components/store/RulesList'
+import { useSettings } from '@/context/SettingsContext'
 import rulesData from '@/data/rules.json'
 
 export default function RulesPage() {
+  const { settings } = useSettings()
+
+  useEffect(() => {
+    if (settings.siteName) {
+      document.title = `${settings.siteName} | Rules`
+    }
+  }, [settings.siteName])
+
   return (
     <StoreLayout sidebar={<StoreSidebar />}>
       <div className="bg-cardBg shadow-lg rounded-md overflow-hidden">

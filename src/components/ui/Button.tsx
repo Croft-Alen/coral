@@ -22,13 +22,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     }
 
     const variantClasses = {
-      primary: 'bg-brand text-white font-medium border-0 shadow-[inset_0_-3px_0_rgba(0,0,0,0.2),0_2px_4px_rgba(0,0,0,0.2),0_7px_13px_-3px_rgba(0,0,0,0.15)] hover:shadow-[0_4px_8px_rgba(0,0,0,0.2),0_7px_13px_-3px_rgba(0,0,0,0.15),inset_0_-3px_0_rgba(0,0,0,0.2)] hover:brightness-105 active:shadow-[inset_0_3px_7px_rgba(0,0,0,0.3)] active:translate-y-0.5 transition-all duration-150',
-      secondary: 'bg-[#FCFCFD] text-[#36395A] font-medium border-0 shadow-[inset_0_-3px_0_#D6D6E7,0_2px_4px_rgba(45,35,66,0.4),0_7px_13px_-3px_rgba(45,35,66,0.3)] hover:shadow-[0_4px_8px_rgba(45,35,66,0.4),0_7px_13px_-3px_rgba(45,35,66,0.3),inset_0_-3px_0_#D6D6E7] active:shadow-[inset_0_3px_7px_#D6D6E7] active:translate-y-0.5 transition-all duration-150',
-      ghost: 'text-text-body font-medium hover:text-text-heading transition-colors border-0 shadow-none bg-transparent'
+      primary: 'bg-brand text-white font-medium border border-white/10 hover:brightness-105 active:brightness-95 transition-all duration-150',
+      secondary: 'bg-cardBg text-text-body font-medium border border-white/10 hover:bg-white/5 transition-all duration-150',
+      ghost: 'text-text-body font-medium hover:text-text-heading transition-colors border-0 bg-transparent'
     }
 
     const baseClasses = cn(
-      "inline-flex items-center justify-center select-none rounded-[4px]",
+      "inline-flex items-center justify-center select-none rounded-sm",
       sizeClasses[size],
       variantClasses[variant],
       className
