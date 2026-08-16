@@ -20,8 +20,7 @@ import { useStoreUI } from '@/context/StoreUIContext'
 import { LoginModal } from '@/components/store/LoginModal'
 import { Button } from '@/components/ui/Button'
 
-const DEFAULT_AVATAR =
-  'https://minotar.net/avatar/_Ziper_YT_/64'
+const DEFAULT_AVATAR = '/images/login-avatar.png'
 
 export function StoreHeader() {
   const {

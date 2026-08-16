@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { FaCrown } from 'react-icons/fa'
 
 interface TopCustomer {
   username: string
@@ -55,8 +56,8 @@ export function TopCustomers() {
       {/* Header with Brand Strip Behind Title */}
       <div className="relative">
         <div className="absolute inset-0 h-12 bg-brand" />
-
-        <div className="relative px-4 py-3">
+        <div className="relative px-4 py-3 flex items-center gap-3">
+          <FaCrown className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
             TOP CUSTOMER
           </h3>

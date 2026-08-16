@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { FaTrophy } from 'react-icons/fa'
 
 interface CommunityGoal {
   header: string
@@ -66,8 +67,8 @@ export function CommunityGoal() {
       {/* Header with Brand Strip Behind Title */}
       <div className="relative">
         <div className="absolute inset-0 h-12 bg-brand" />
-
-        <div className="relative px-4 py-3">
+        <div className="relative px-4 py-3 flex items-center gap-3">
+          <FaTrophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
             COMMUNITY GOAL
           </h3>
