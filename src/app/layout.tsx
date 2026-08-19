@@ -33,6 +33,10 @@ export default function RootLayout({
       className={plusJakartaSans.variable}
       suppressHydrationWarning
     >
+      <head>
+        <title>{settingsData.siteName}</title>
+      </head>
+
       <body className="antialiased bg-pageBg text-text-body">
         <Providers>
           <StoreHeader />

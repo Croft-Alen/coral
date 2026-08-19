@@ -104,16 +104,8 @@ export function CartSidebar({
 
   /*
    * ---------------------------------------------------------
-   * OPEN CODE MODAL
+   * CODE MODAL
    * ---------------------------------------------------------
-   *
-   * Each button passes its own type.
-   *
-   * Coupon -> coupon
-   * Creator -> creator
-   * Gift -> gift
-   *
-   * There is NO shared input state here.
    */
   const openCodeModal = (type: CodeType) => {
     setActiveCodeModal(type)
@@ -138,15 +130,14 @@ export function CartSidebar({
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-96 md:w-[420px] bg-cardBg shadow-2xl transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 z-50 h-full w-full sm:w-96 md:w-[420px] bg-cardBg shadow-2xl transition-transform duration-300 ease-in-out flex flex-col overflow-hidden ${
           isOpen
             ? 'translate-x-0'
             : 'translate-x-full'
         }`}
       >
-
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-cardBg">
+        <div className="flex items-center justify-between p-4 border-b border-white/5 bg-cardBg flex-shrink-0">
           <h2 className="text-lg font-bold text-text-heading">
             Your Cart ({itemCount} items)
           </h2>
@@ -162,7 +153,16 @@ export function CartSidebar({
         </div>
 
         {/* Items */}
-        <div className="overflow-y-auto px-4 py-4 max-h-[300px]">
+        {/*
+         * IMPORTANT:
+         *
+         * flex-1 + min-h-0 allows this section to use only the
+         * vertical space that remains between the header and footer.
+         *
+         * This prevents cart items from going underneath the
+         * footer/separator on smaller laptop screens.
+         */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 py-4">
           {isLoading && items.length === 0 ? (
             <p className="text-text-muted text-center py-8">
               Loading your cart...
@@ -199,103 +199,122 @@ export function CartSidebar({
           )}
         </div>
 
-       {/* Footer */}
-{items.length > 0 && (
-  <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/5 bg-cardBg">
+        {/* Footer */}
+        {items.length > 0 && (
+          <div className="flex-shrink-0 p-4 border-t border-white/5 bg-cardBg">
+            {/* Code Buttons */}
+            <div className="bg-pageBg rounded-sm p-3 space-y-2.5 mb-3">
+              {/* Gift Card */}
+              <Button
+                variant="ghost"
+                size="md"
+                className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
+                onClick={() => openCodeModal('gift')}
+              >
+                <FaGift className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
+                <span>Gift Card</span>
+              </Button>
 
-    {/* Code Buttons */}
-    <div className="bg-pageBg rounded-sm p-3 space-y-2.5 mb-3">
+              {/* Creator Code */}
+              <Button
+                variant="ghost"
+                size="md"
+                className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
+                onClick={() => openCodeModal('creator')}
+              >
+                <FaUser className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
+                <span>Creator Code</span>
+              </Button>
 
-      {/* Gift Card */}
-      <Button
-        variant="ghost"
-        size="md"
-        className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
-        onClick={() => openCodeModal('gift')}
-      >
-        <FaGift className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
-        <span>Gift Card</span>
-      </Button>
+              {/* Coupon */}
+              <Button
+                variant="ghost"
+                size="md"
+                className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
+                onClick={() => openCodeModal('coupon')}
+              >
+                <FaTag className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
+                <span>Coupon Code</span>
+              </Button>
+            </div>
 
-      {/* Creator Code */}
-      <Button
-        variant="ghost"
-        size="md"
-        className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
-        onClick={() => openCodeModal('creator')}
-      >
-        <FaUser className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
-        <span>Creator Code</span>
-      </Button>
+            {/* Summary */}
+            <div className="space-y-1.5 mb-3">
+              <div className="flex justify-between text-text-body text-sm">
+                <span>Subtotal</span>
 
-      {/* Coupon */}
-      <Button
-        variant="ghost"
-        size="md"
-        className="w-full flex items-center gap-3 justify-start bg-cardBg rounded-sm px-3 py-2.5 text-sm text-text-body hover:text-text-heading transition-colors cursor-pointer text-left"
-        onClick={() => openCodeModal('coupon')}
-      >
-        <FaTag className="text-text-muted w-3.5 h-3.5 flex-shrink-0" />
-        <span>Coupon Code</span>
-      </Button>
+                <span className="font-medium">
+                  ${subtotal.toFixed(2)}
+                </span>
+              </div>
 
-    </div>
+              {/*
+               * Keep tax available for the calculation but don't
+               * change the existing visual layout.
+               */}
+              <div className="border-t border-white/10 pt-2 flex justify-between text-text-heading font-bold text-lg">
+                <span>Total</span>
 
-           {/* Summary */}
-<div className="space-y-1.5 mb-3">
-  <div className="flex justify-between text-text-body text-sm">
-    <span>Subtotal</span>
-    <span className="font-medium">
-      ${subtotal.toFixed(2)}
-    </span>
-  </div>
-
-  <div className="border-t border-white/10 pt-2 flex justify-between text-text-heading font-bold text-lg">
-    <span>Total</span>
-    <span className="text-brand">
-      ${total.toFixed(2)}
-    </span>
-  </div>
-</div>
+                <span className="text-brand">
+                  ${total.toFixed(2)}
+                </span>
+              </div>
+            </div>
 
             {/* Checkout */}
-           <Button
-  variant="primary"
-  size="lg"
-  className="w-full justify-center h-11 text-base cursor-pointer"
-  disabled={!basketId || isLoading}
-  onClick={async () => {
-    if (!basketId || isLoading) return
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full justify-center h-11 text-base cursor-pointer"
+              disabled={!basketId || isLoading}
+              onClick={async () => {
+                if (!basketId || isLoading) return
 
-    try {
-      const response = await fetch('/api/tebex/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          basketId,
-        }),
-      })
+                try {
+                  const response = await fetch(
+                    '/api/tebex/checkout',
+                    {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type':
+                          'application/json',
+                      },
+                      body: JSON.stringify({
+                        basketId,
+                      }),
+                    }
+                  )
 
-      const data = await response.json()
+                  const data =
+                    await response.json()
 
-      if (!response.ok || !data.success || !data.checkoutUrl) {
-        console.error('Checkout error:', data)
-        return
-      }
+                  if (
+                    !response.ok ||
+                    !data.success ||
+                    !data.checkoutUrl
+                  ) {
+                    console.error(
+                      'Checkout error:',
+                      data
+                    )
 
-      onClose()
+                    return
+                  }
 
-      window.location.href = data.checkoutUrl
-    } catch (error) {
-      console.error('Failed to start checkout:', error)
-    }
-  }}
->
-  Proceed to Checkout
-</Button>
+                  onClose()
 
+                  window.location.href =
+                    data.checkoutUrl
+                } catch (error) {
+                  console.error(
+                    'Failed to start checkout:',
+                    error
+                  )
+                }
+              }}
+            >
+              Proceed to Checkout
+            </Button>
           </div>
         )}
       </div>

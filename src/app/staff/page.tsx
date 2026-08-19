@@ -1,21 +1,15 @@
-'use client'
-
-import { useEffect } from 'react'
+import type { Metadata } from 'next'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { StaffCard } from '@/components/store/StaffCard'
-import { useSettings } from '@/context/SettingsContext'
 import staffData from '@/data/staff.json'
+import settingsData from '@/data/settings.json'
+
+export const metadata: Metadata = {
+  title: `${settingsData.siteName} | Staff`,
+}
 
 export default function StaffPage() {
-  const { settings } = useSettings()
-
-  useEffect(() => {
-    if (settings.siteName) {
-      document.title = `${settings.siteName} | Staff`
-    }
-  }, [settings.siteName])
-
   return (
     <StoreLayout sidebar={<StoreSidebar />}>
       <div className="bg-cardBg shadow-lg rounded-md overflow-hidden">

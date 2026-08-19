@@ -1,9 +1,13 @@
-'use client'
-
+import type { Metadata } from 'next'
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { VoteCard } from '@/components/store/VoteCard'
 import voteData from '@/data/vote.json'
+import settingsData from '@/data/settings.json'
+
+export const metadata: Metadata = {
+  title: `${settingsData.siteName} | Vote`,
+}
 
 export default function VotePage() {
   return (

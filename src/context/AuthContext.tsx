@@ -8,12 +8,9 @@ import {
   ReactNode,
 } from 'react'
 
-type PlayerPlatform = 'java' | 'bedrock'
-
 interface PlayerIdentity {
   username: string
   usernameId: string | null
-  platform: PlayerPlatform
 }
 
 interface AuthContextType {
@@ -21,16 +18,12 @@ interface AuthContextType {
 
   username: string | null
   usernameId: string | null
-  platform: PlayerPlatform | null
 
   isLoggedIn: boolean
 
   isLoginModalOpen: boolean
 
-  login: (
-    username: string,
-    platform?: PlayerPlatform
-  ) => void
+  login: (username: string) => void
 
   setUsernameId: (usernameId: string | null) => void
 
@@ -41,7 +34,9 @@ interface AuthContextType {
 }
 
 const AuthContext =
-  createContext<AuthContextType | undefined>(undefined)
+  createContext<AuthContextType | undefined>(
+    undefined
+  )
 
 const PLAYER_STORAGE_KEY = 'mc_player'
 
@@ -58,15 +53,20 @@ export function AuthProvider({
 
   /*
    * Restore the selected Minecraft player.
+   *
+   * Only Java Edition players are supported.
    */
   useEffect(() => {
     try {
       const saved =
-        localStorage.getItem(PLAYER_STORAGE_KEY)
+        localStorage.getItem(
+          PLAYER_STORAGE_KEY
+        )
 
       if (!saved) return
 
-      const parsed = JSON.parse(saved)
+      const parsed =
+        JSON.parse(saved)
 
       if (
         !parsed ||
@@ -76,19 +76,18 @@ export function AuthProvider({
         localStorage.removeItem(
           PLAYER_STORAGE_KEY
         )
+
         return
       }
 
       const restoredPlayer: PlayerIdentity = {
-        username: parsed.username,
+        username:
+          parsed.username.trim(),
+
         usernameId:
           typeof parsed.usernameId === 'string'
             ? parsed.usernameId
             : null,
-        platform:
-          parsed.platform === 'bedrock'
-            ? 'bedrock'
-            : 'java',
       }
 
       setPlayer(restoredPlayer)
@@ -107,21 +106,25 @@ export function AuthProvider({
   /*
    * Select a Minecraft player.
    *
-   * This only controls the currently selected player.
-   * Cart data is handled separately by CartContext.
+   * This only controls the currently selected
+   * Java Edition player.
+   *
+   * Tebex verification/resolution happens separately
+   * when the basket is created.
+   *
+   * Cart data is handled by CartContext.
    */
   const login = (
-    username: string,
-    platform: PlayerPlatform = 'java'
+    username: string
   ) => {
-    const trimmedUsername = username.trim()
+    const trimmedUsername =
+      username.trim()
 
     if (!trimmedUsername) return
 
     const newPlayer: PlayerIdentity = {
       username: trimmedUsername,
       usernameId: null,
-      platform,
     }
 
     setPlayer(newPlayer)
@@ -133,7 +136,8 @@ export function AuthProvider({
   }
 
   /*
-   * Store the Tebex username_id once it becomes available.
+   * Store the Tebex username_id once it
+   * becomes available from the basket.
    */
   const setUsernameId = (
     usernameId: string | null
@@ -156,12 +160,13 @@ export function AuthProvider({
   }
 
   /*
-   * Logout only removes the currently selected player.
+   * Logout only removes the currently
+   * selected player.
    *
    * It does NOT clear cart data.
    *
-   * CartContext is responsible for loading the cart
-   * belonging to whichever player is selected next.
+   * CartContext is responsible for loading
+   * the cart belonging to the selected player.
    */
   const logout = () => {
     setPlayer(null)
@@ -174,17 +179,17 @@ export function AuthProvider({
   }
 
   /*
-   * Open the existing global LoginModal.
+   * Open the global LoginModal.
    *
-   * This can be called from ProductCard,
-   * ProductModal, StoreHeader, or any other component.
+   * Can be called from ProductCard,
+   * ProductModal, StoreHeader, etc.
    */
   const openLoginModal = () => {
     setIsLoginModalOpen(true)
   }
 
   /*
-   * Close the existing global LoginModal.
+   * Close the global LoginModal.
    */
   const closeLoginModal = () => {
     setIsLoginModalOpen(false)
@@ -201,10 +206,8 @@ export function AuthProvider({
         usernameId:
           player?.usernameId ?? null,
 
-        platform:
-          player?.platform ?? null,
-
-        isLoggedIn: !!player,
+        isLoggedIn:
+          !!player,
 
         isLoginModalOpen,
 

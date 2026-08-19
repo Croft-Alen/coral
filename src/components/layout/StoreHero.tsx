@@ -19,9 +19,10 @@ export function StoreHero() {
   }
 
   return (
-    <section className="w-full -mt-2 relative z-0">
-      <div className="w-full">
+    <section className="relative w-full -mt-2 z-0">
+      <div className="relative w-full">
         <div className="relative min-h-[320px] sm:min-h-[380px] md:min-h-[420px] w-full overflow-hidden bg-cardBg">
+
           {/* Background */}
           <div className="absolute inset-0">
             <img
@@ -34,32 +35,54 @@ export function StoreHero() {
               className="h-full w-full object-cover"
             />
 
-            {/* Card bg color overlay - same intensity everywhere */}
+            {/* Main overlay */}
             <div className="absolute inset-0 bg-cardBg/85" />
 
-            {/* Bottom fade - minimal, just enough to blend */}
-            <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-cardBg to-transparent" />
+            {/* Slow bottom blend */}
+            <div
+              className="
+                absolute
+                inset-x-0
+                bottom-0
+                h-48
+                sm:h-56
+                md:h-72
+                bg-gradient-to-b
+                from-transparent
+                via-cardBg/30
+                via-65%
+                to-pageBg
+              "
+            />
           </div>
 
           {/* Hero content */}
           <div className="relative z-10 flex min-h-[320px] sm:min-h-[380px] md:min-h-[420px] items-center">
             <div className="mx-auto w-full max-w-7xl px-3 sm:px-6 lg:px-8">
 
-              {/* Mobile: Only Logo */}
+              {/* Mobile: Logo only */}
               <div className="flex justify-center sm:hidden">
                 <Link href="/">
                   <img
                     src={settings.logo || '/images/logo.png'}
                     alt={settings.siteName}
-                    className="h-48 w-48 object-contain drop-shadow-2xl cursor-pointer hover:opacity-80 transition-opacity"
+                    className="
+                      h-48
+                      w-48
+                      object-contain
+                      drop-shadow-2xl
+                      cursor-pointer
+                      transition-opacity
+                      hover:opacity-80
+                    "
                   />
                 </Link>
               </div>
 
-              {/* Desktop: Full 3-column composition */}
+              {/* Desktop: 3-column composition */}
               <div className="hidden grid-cols-3 items-center gap-6 sm:grid">
 
-                {/* LEFT */}
+                {/* LEFT — Server */}
                 <div className="order-1 flex justify-end pr-4">
                   <button
                     onClick={handleCopyIP}
@@ -79,7 +102,16 @@ export function StoreHero() {
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       viewBox="0 0 512 512"
-                      className="h-12 w-12 shrink-0 text-brand transition-all duration-500 ease-in-out hover:scale-110"
+                      className="
+                        h-12
+                        w-12
+                        shrink-0
+                        text-brand
+                        transition-all
+                        duration-500
+                        ease-in-out
+                        hover:scale-110
+                      "
                       fill="currentColor"
                       aria-hidden="true"
                     >
@@ -95,7 +127,8 @@ export function StoreHero() {
                       src={settings.logo || '/images/logo.png'}
                       alt={settings.siteName}
                       className="
-                        h-44 w-44
+                        h-44
+                        w-44
                         shrink-0
                         object-contain
                         drop-shadow-2xl
@@ -103,8 +136,10 @@ export function StoreHero() {
                         duration-700
                         ease-in-out
                         hover:scale-105
-                        sm:h-44 sm:w-44
-                        md:h-52 md:w-52
+                        sm:h-44
+                        sm:w-44
+                        md:h-52
+                        md:w-52
                         cursor-pointer
                         hover:opacity-80
                       "
@@ -121,7 +156,16 @@ export function StoreHero() {
                     className="group flex shrink-0 cursor-pointer items-center gap-4"
                   >
                     <FaDiscord
-                      className="h-12 w-12 shrink-0 text-brand transition-all duration-500 ease-in-out hover:scale-110"
+                      className="
+                        h-12
+                        w-12
+                        shrink-0
+                        text-brand
+                        transition-all
+                        duration-500
+                        ease-in-out
+                        hover:scale-110
+                      "
                       aria-hidden="true"
                     />
 
@@ -141,6 +185,23 @@ export function StoreHero() {
               </div>
             </div>
           </div>
+
+          {/* Extra soft transition into page background */}
+          <div
+            className="
+              absolute
+              inset-x-0
+              -bottom-1
+              h-20
+              sm:h-28
+              pointer-events-none
+              bg-gradient-to-b
+              from-transparent
+              via-pageBg/30
+              to-pageBg
+            "
+          />
+
         </div>
       </div>
     </section>
