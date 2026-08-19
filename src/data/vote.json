@@ -1,0 +1,28 @@
+{
+  "voteLinks": [
+    {
+      "id": "1",
+      "siteName": "LINK #1",
+      "url": "https://topg.org/server/grovemc",
+      "description": "Click to vote"
+    },
+    {
+      "id": "2",
+      "siteName": "LINK #2",
+      "url": "https://minecraft-server-list.com/server/grovemc",
+      "description": "Click to vote"
+    },
+    {
+      "id": "3",
+      "siteName": "LINK #3",
+      "url": "https://topminecraftservers.org/server/grovemc",
+      "description": "Click to vote"
+    },
+    {
+      "id": "4",
+      "siteName": "LINK #4",
+      "url": "https://minecraft-mp.com/server/grovemc",
+      "description": "Click to vote"
+    }
+  ]
+}

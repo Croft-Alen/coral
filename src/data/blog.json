@@ -1,0 +1,43 @@
+{
+  "posts": [
+    {
+      "id": "1",
+      "slug": "getting-started-on-grovemc",
+      "title": "Getting Started on GroveMc: Your First Day!",
+      "description": "New to GroveMc? This guide covers everything you need to know to get started.",
+      "content": "<h2>Welcome to GroveMc!</h2><p>Congratulations on joining GroveMc! This guide will help you get started on your first day.</p><h3>Step 1: Claim Your Starter Kit</h3><p>Type /kit starter in chat to claim your free starter items.</p><h3>Step 2: Explore the Spawn</h3><p>Take a look around the spawn area to find shops, warp points, and other important locations.</p><h3>Step 3: Start Mining</h3><p>Mine resources to earn money and build your base.</p>",
+      "author": "Admin",
+      "publishedDate": "2025-01-15",
+      "readTime": 5,
+      "featured": true,
+      "tags": ["guide", "beginner"],
+      "bannerImage": "/images/blog/getting-started.png"
+    },
+    {
+      "id": "2",
+      "slug": "how-to-rank-up-fast",
+      "title": "How to Rank Up Fast in GroveMc",
+      "description": "Want to climb the ranks quickly? Here are the best strategies and tips.",
+      "content": "<h2>Ranking Up Fast</h2><p>Looking to become the top player? Here are the best ways to earn money and rank up quickly.</p><h3>1. Mining</h3><p>Mining is the most consistent way to earn money. Focus on diamond and netherite.</p><h3>2. Farming</h3><p>Build an automatic farm for passive income.</p><h3>3. Trading</h3><p>Buy low, sell high on the player market.</p>",
+      "author": "Admin",
+      "publishedDate": "2025-01-10",
+      "readTime": 7,
+      "featured": false,
+      "tags": ["guide", "ranks"],
+      "bannerImage": "/images/blog/rank-up-fast.jpg"
+    },
+    {
+      "id": "3",
+      "slug": "top-5-ways-to-earn-money",
+      "title": "Top 5 Ways to Earn Money on GroveMc",
+      "description": "Discover the best ways to earn money on our Minecraft prison server.",
+      "content": "<h2>Money-Making Guide</h2><p>Here are the top 5 ways to earn money on GroveMc.</p><h3>1. Mining</h3><p>Mine ores at the mines. Higher tiers = better rewards.</p><h3>2. Fishing</h3><p>Set up an AFK fishing farm for consistent income.</p><h3>3. Farming</h3><p>Build crop farms and sell produce.</p><h3>4. Trading</h3><p>Buy and sell items on the server market.</p><h3>5. Events</h3><p>Participate in server events for bonus rewards.</p>",
+      "author": "Admin",
+      "publishedDate": "2025-01-05",
+      "readTime": 6,
+      "featured": false,
+      "tags": ["guide", "money"],
+      "bannerImage": "/images/blog/getting-started.png"
+    }
+  ]
+}

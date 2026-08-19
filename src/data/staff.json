@@ -1,0 +1,103 @@
+{
+  "categories": [
+    {
+      "id": "owner",
+      "title": "Owners",
+      "members": [
+        {
+          "id": "1",
+          "name": "Cokla",
+          "role": "Owner"
+        },
+        {
+          "id": "2",
+          "name": "Carel",
+          "role": "Owner"
+        },
+        {
+          "id": "7",
+          "name": "George",
+          "role": "Owner"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "title": "Admins",
+      "members": [
+        {
+          "id": "3",
+          "name": "Sapnap",
+          "role": "Admin"
+        },
+        {
+          "id": "8",
+          "name": "BadBoyHalo",
+          "role": "Admin"
+        },
+        {
+          "id": "9",
+          "name": "Skeppy",
+          "role": "Admin"
+        }
+      ]
+    },
+    {
+      "id": "moderator",
+      "title": "Moderators",
+      "members": [
+        {
+          "id": "4",
+          "name": "TommyInnit",
+          "role": "Moderator"
+        },
+        {
+          "id": "10",
+          "name": "Tubbo",
+          "role": "Moderator"
+        },
+        {
+          "id": "11",
+          "name": "Ranboo",
+          "role": "Moderator"
+        }
+      ]
+    },
+    {
+      "id": "helper",
+      "title": "Helpers",
+      "members": [
+        {
+          "id": "5",
+          "name": "NikiNihachu",
+          "role": "Helper"
+        },
+        {
+          "id": "6",
+          "name": "JackManifold",
+          "role": "Helper"
+        },
+        {
+          "id": "12",
+          "name": "Eret",
+          "role": "Helper"
+        },
+        {
+          "id": "13",
+          "name": "Fundy",
+          "role": "Helper"
+        },
+        {
+          "id": "14",
+          "name": "ConnorEatsPants",
+          "role": "Helper"
+        },
+        {
+          "id": "15",
+          "name": "Slimecicle",
+          "role": "Helper"
+        }
+      ]
+    }
+  ]
+}
