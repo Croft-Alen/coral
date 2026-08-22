@@ -1,133 +1,14 @@
 import { NextResponse } from 'next/server'
 import { getTebexServerClient } from '@/lib/tebex/client'
 
-// GET - Get basket by ID OR run temporary Tebex investigation
+/*
+ * GET - Get basket by ID
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
 
-    // ============================================================
-    // TEMPORARY TEBEX INVESTIGATION
-    // ============================================================
-    if (searchParams.get('diagnostic') === 'true') {
-      const username = searchParams.get('username')
-      const packageId = searchParams.get('packageId')
-
-      if (!username || !packageId) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'diagnostic requires username and packageId',
-          },
-          { status: 400 }
-        )
-      }
-
-      const numericPackageId = Number(packageId)
-
-      if (
-        !Number.isInteger(numericPackageId) ||
-        numericPackageId <= 0
-      ) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: 'packageId must be a valid positive integer',
-          },
-          { status: 400 }
-        )
-      }
-
-      const client = getTebexServerClient()
-
-      const siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        'https://your-domain.com'
-
-      // 1. Create a completely fresh Minecraft basket
-      const createdBasket =
-        await client.createMinecraftBasket(
-          username,
-          `${siteUrl}/store/complete`,
-          `${siteUrl}/store`
-        )
-
-      // 2. Add ONE real package
-      await client.addPackageToBasket(
-        createdBasket.ident,
-        numericPackageId,
-        1
-      )
-
-      // 3. Fetch the basket again AFTER adding the package
-      const fetchedBasket =
-        await client.getBasket(
-          createdBasket.ident
-        )
-
-      return NextResponse.json({
-        success: true,
-        diagnostic: true,
-
-        message:
-          'Tebex diagnostic basket created, package added, and basket fetched successfully.',
-
-        createdBasket,
-
-        fetchedBasket,
-
-        investigation: {
-          basket: {
-            ident: fetchedBasket.ident,
-            id: fetchedBasket.id,
-            complete: fetchedBasket.complete,
-          },
-
-          minecraftIdentity: {
-            username: fetchedBasket.username,
-            username_id: fetchedBasket.username_id,
-          },
-
-          customer: {
-            email: fetchedBasket.email,
-            country: fetchedBasket.country,
-            ip: fetchedBasket.ip,
-          },
-
-          checkout: {
-            complete_url: fetchedBasket.complete_url,
-            cancel_url: fetchedBasket.cancel_url,
-            complete_auto_redirect:
-              fetchedBasket.complete_auto_redirect,
-            links: fetchedBasket.links,
-          },
-
-          pricing: {
-            base_price: fetchedBasket.base_price,
-            sales_tax: fetchedBasket.sales_tax,
-            total_price: fetchedBasket.total_price,
-            currency: fetchedBasket.currency,
-          },
-
-          discountsAndCodes: {
-            coupons: fetchedBasket.coupons,
-            giftcards: fetchedBasket.giftcards,
-            creator_code: fetchedBasket.creator_code,
-          },
-
-          packages: fetchedBasket.packages,
-
-          custom: fetchedBasket.custom,
-        },
-      })
-    }
-
-    // ============================================================
-    // NORMAL GET - Get basket by ID
-    // ============================================================
-
-    const basketId =
-      searchParams.get('basketId')
+    const basketId = searchParams.get('basketId')
 
     if (!basketId?.trim()) {
       return NextResponse.json(
@@ -139,23 +20,16 @@ export async function GET(request: Request) {
       )
     }
 
-    const client =
-      getTebexServerClient()
+    const client = getTebexServerClient()
 
-    const basket =
-      await client.getBasket(
-        basketId
-      )
+    const basket = await client.getBasket(basketId)
 
     return NextResponse.json({
       success: true,
       data: basket,
     })
   } catch (error: any) {
-    console.error(
-      'Error fetching basket:',
-      error
-    )
+    console.error('Error fetching basket:', error)
 
     return NextResponse.json(
       {
@@ -166,18 +40,18 @@ export async function GET(request: Request) {
         details: error?.body || null,
       },
       {
-        status:
-          error?.status || 500,
+        status: error?.status || 500,
       }
     )
   }
 }
 
-// POST - Create basket
+/*
+ * POST - Create a new basket and add a package
+ */
 export async function POST(request: Request) {
   try {
-    const client =
-      getTebexServerClient()
+    const client = getTebexServerClient()
 
     const {
       packageId,
@@ -199,13 +73,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const numericPackageId =
-      Number(packageId)
+    const numericPackageId = Number(packageId)
 
     if (
-      !Number.isInteger(
-        numericPackageId
-      ) ||
+      !Number.isInteger(numericPackageId) ||
       numericPackageId <= 0
     ) {
       return NextResponse.json(
@@ -218,13 +89,10 @@ export async function POST(request: Request) {
       )
     }
 
-    const numericQuantity =
-      Number(quantity)
+    const numericQuantity = Number(quantity)
 
     if (
-      !Number.isInteger(
-        numericQuantity
-      ) ||
+      !Number.isInteger(numericQuantity) ||
       numericQuantity < 1
     ) {
       return NextResponse.json(
@@ -244,8 +112,8 @@ export async function POST(request: Request) {
     const basket =
       await client.createMinecraftBasket(
         username.trim(),
-       `${siteUrl}/complete`,
-`${siteUrl}/`
+        `${siteUrl}/complete`,
+        `${siteUrl}/`
       )
 
     await client.addPackageToBasket(
@@ -278,18 +146,18 @@ export async function POST(request: Request) {
         details: error?.body || null,
       },
       {
-        status:
-          error?.status || 500,
+        status: error?.status || 500,
       }
     )
   }
 }
 
-// PUT - Add package or update package quantity
+/*
+ * PUT - Add package or update package quantity
+ */
 export async function PUT(request: Request) {
   try {
-    const client =
-      getTebexServerClient()
+    const client = getTebexServerClient()
 
     const {
       basketId,
@@ -305,20 +173,16 @@ export async function PUT(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            'basketId is required',
+          error: 'basketId is required',
         },
         { status: 400 }
       )
     }
 
-    const numericPackageId =
-      Number(packageId)
+    const numericPackageId = Number(packageId)
 
     if (
-      !Number.isInteger(
-        numericPackageId
-      ) ||
+      !Number.isInteger(numericPackageId) ||
       numericPackageId <= 0
     ) {
       return NextResponse.json(
@@ -331,13 +195,10 @@ export async function PUT(request: Request) {
       )
     }
 
-    const numericQuantity =
-      Number(quantity)
+    const numericQuantity = Number(quantity)
 
     if (
-      !Number.isInteger(
-        numericQuantity
-      ) ||
+      !Number.isInteger(numericQuantity) ||
       numericQuantity < 1
     ) {
       return NextResponse.json(
@@ -351,9 +212,7 @@ export async function PUT(request: Request) {
     }
 
     const basket =
-      await client.getBasket(
-        basketId
-      )
+      await client.getBasket(basketId)
 
     const existingPackage =
       basket.packages?.find(
@@ -376,11 +235,8 @@ export async function PUT(request: Request) {
       )
     }
 
-    // Always return Tebex's latest basket
     const updatedBasket =
-      await client.getBasket(
-        basketId
-      )
+      await client.getBasket(basketId)
 
     return NextResponse.json({
       success: true,
@@ -401,18 +257,18 @@ export async function PUT(request: Request) {
         details: error?.body || null,
       },
       {
-        status:
-          error?.status || 500,
+        status: error?.status || 500,
       }
     )
   }
 }
 
-// DELETE - Remove item from basket
+/*
+ * DELETE - Remove item from basket
+ */
 export async function DELETE(request: Request) {
   try {
-    const client =
-      getTebexServerClient()
+    const client = getTebexServerClient()
 
     const {
       basketId,
@@ -427,20 +283,16 @@ export async function DELETE(request: Request) {
       return NextResponse.json(
         {
           success: false,
-          error:
-            'basketId is required',
+          error: 'basketId is required',
         },
         { status: 400 }
       )
     }
 
-    const numericPackageId =
-      Number(packageId)
+    const numericPackageId = Number(packageId)
 
     if (
-      !Number.isInteger(
-        numericPackageId
-      ) ||
+      !Number.isInteger(numericPackageId) ||
       numericPackageId <= 0
     ) {
       return NextResponse.json(
@@ -458,20 +310,8 @@ export async function DELETE(request: Request) {
       numericPackageId
     )
 
-    /*
-     * Fetch Tebex's latest basket.
-     *
-     * This allows CartContext to know whether:
-     *
-     * 1. Items still remain.
-     * 2. The basket became completely empty.
-     * 3. Pricing changed.
-     * 4. Coupons/gift cards/creator codes changed.
-     */
     const updatedBasket =
-      await client.getBasket(
-        basketId
-      )
+      await client.getBasket(basketId)
 
     return NextResponse.json({
       success: true,
@@ -492,8 +332,7 @@ export async function DELETE(request: Request) {
         details: error?.body || null,
       },
       {
-        status:
-          error?.status || 500,
+        status: error?.status || 500,
       }
     )
   }

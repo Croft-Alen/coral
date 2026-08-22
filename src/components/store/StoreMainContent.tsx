@@ -12,14 +12,17 @@ interface StoreMainContentProps {
 
 export function StoreMainContent({
   type,
-  description,
+  description = '',
   categoryName = '',
   loading = false,
 }: StoreMainContentProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
-      {type === 'store' && description && (
-        <StoreDescription description={description} />
+      {type === 'store' && (
+        <StoreDescription
+          description={description}
+          loading={loading}
+        />
       )}
 
       {type === 'category' && (

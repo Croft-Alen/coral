@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FaBoxOpen } from 'react-icons/fa'
+
 import { StoreLayout } from '@/components/store/StoreLayout'
 import { StoreSidebar } from '@/components/store/StoreSidebar'
 import { StoreMainContent } from '@/components/store/StoreMainContent'
@@ -93,17 +94,23 @@ export default function CategoryPageClient({
     }
   }, [categoryId])
 
-  if (error) {
-    return (
-      <StoreLayout sidebar={<StoreSidebar />}>
-        <div className="bg-cardBg shadow-lg rounded-md overflow-hidden">
+  return (
+    <StoreLayout sidebar={<StoreSidebar />}>
+      <StoreMainContent
+        type="category"
+        categoryName={categoryName}
+        loading={loading}
+      />
+
+      {error && (
+        <div className="bg-cardBg shadow-lg rounded-md overflow-hidden mt-4 sm:mt-6">
           <div className="flex flex-col items-center justify-center text-center px-6 py-12 sm:px-8 sm:py-16">
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-red-500/10 mb-6">
               <FaBoxOpen className="w-10 h-10 text-red-500" />
             </div>
 
             <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-heading">
-              Category Not Found
+              Unable to Load Category
             </h1>
 
             <p className="mt-3 text-sm sm:text-base text-text-muted max-w-md">
@@ -111,20 +118,9 @@ export default function CategoryPageClient({
             </p>
           </div>
         </div>
-      </StoreLayout>
-    )
-  }
+      )}
 
-  return (
-    <StoreLayout sidebar={<StoreSidebar />}>
-      {/* ALWAYS PRESENT */}
-      <StoreMainContent
-        type="category"
-        categoryName={categoryName}
-        loading={loading}
-      />
-
-      {!loading && packages.length > 0 && (
+      {!error && !loading && packages.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-4 mt-4 sm:mt-6">
           {packages.map((pkg) => (
             <ProductCard
@@ -135,7 +131,7 @@ export default function CategoryPageClient({
         </div>
       )}
 
-      {!loading && packages.length === 0 && (
+      {!error && !loading && packages.length === 0 && (
         <div className="bg-cardBg shadow-lg rounded-md overflow-hidden mt-4 sm:mt-6">
           <div className="flex flex-col items-center justify-center text-center px-6 py-12 sm:px-8 sm:py-16">
             <div className="flex items-center justify-center w-20 h-20 rounded-full bg-brand/10 mb-6">

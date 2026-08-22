@@ -14,7 +14,10 @@ interface StoreData {
 }
 
 export default function HomePageClient() {
-  const [storeData, setStoreData] = useState<StoreData | null>(null)
+  const [storeData, setStoreData] =
+    useState<StoreData | null>(null)
+
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const fetchStoreData = async () => {
@@ -25,12 +28,18 @@ export default function HomePageClient() {
 
         if (data.success) {
           setStoreData(data.data || null)
+        } else {
+          setStoreData(null)
         }
       } catch (error) {
         console.error(
           'Error fetching store data:',
           error
         )
+
+        setStoreData(null)
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -43,6 +52,7 @@ export default function HomePageClient() {
         description={
           storeData?.webstore?.description || ''
         }
+        loading={loading}
       />
     </StoreLayout>
   )

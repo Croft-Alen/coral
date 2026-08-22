@@ -36,7 +36,6 @@ export function RecentPayments() {
     fetchRecentPayments()
   }, [])
 
-  // Reserve the card's expected height while Tebex data is loading.
   if (loading) {
     return (
       <div
@@ -46,7 +45,6 @@ export function RecentPayments() {
     )
   }
 
-  // Tebex does not have the recent_payments module.
   if (payments === null) {
     return null
   }
@@ -55,14 +53,12 @@ export function RecentPayments() {
   const filledSlots = payments.slice(0, totalSlots)
   const emptySlots = totalSlots - filledSlots.length
 
-  // Module exists, but there are currently no payments.
   if (filledSlots.length === 0) {
     return null
   }
 
   return (
     <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
-      {/* Header with Brand Strip Behind Title */}
       <div className="relative">
         <div className="absolute inset-0 h-12 bg-brand" />
         <div className="relative px-4 py-3 flex items-center gap-3">
@@ -73,7 +69,7 @@ export function RecentPayments() {
         </div>
       </div>
 
-      <div className="px-3 pt-3 pb-4">
+      <div className="px-3 pt-4 pb-4">
         <div className="grid grid-cols-4 gap-3">
           {filledSlots.map((payment) => (
             <div

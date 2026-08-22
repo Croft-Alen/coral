@@ -91,13 +91,13 @@ export function CategoriesCard() {
         <div className="absolute inset-0 h-12 bg-brand" />
         <div className="relative px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 sm:gap-3 min-w-0">
           <FaStore className="w-4 h-4 sm:w-5 sm:h-5 text-white flex-shrink-0" />
-          <h3 className="text-xs sm:text-sm md:text-base font-semibold text-white uppercase tracking-wider truncate">
+          <h3 className="text-sm sm:text-base md:text-base font-semibold text-white uppercase tracking-wider truncate">
             Browse Categories
           </h3>
         </div>
       </div>
 
-      <div className="p-2 sm:p-3">
+      <div className="p-4 sm:p-5">
         <div className="space-y-2">
           {topLevelCategories.map(category => {
             const categorySlug = category.slug || category.name.toLowerCase().replace(/\s+/g, '-')

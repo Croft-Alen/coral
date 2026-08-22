@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FaTrophy } from 'react-icons/fa'
+import { useSettings } from '@/context/SettingsContext'
 
 interface CommunityGoal {
   header: string
@@ -13,6 +14,7 @@ interface CommunityGoal {
 }
 
 export function CommunityGoal() {
+  const { settings } = useSettings()
   const [goal, setGoal] = useState<CommunityGoal | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -38,7 +40,6 @@ export function CommunityGoal() {
     fetchCommunityGoal()
   }, [])
 
-  // Reserve the card's expected height while Tebex data is loading.
   if (loading) {
     return (
       <div
@@ -48,7 +49,6 @@ export function CommunityGoal() {
     )
   }
 
-  // Tebex has no active community goal.
   if (!goal) {
     return null
   }
@@ -58,98 +58,134 @@ export function CommunityGoal() {
     Math.max(0, Number(goal.percentage ?? 0))
   )
 
-  // Use Tebex's actual values.
   const target = Number(goal.target ?? 0)
   const current = Number(goal.total_payments ?? 0)
 
-  return (
-    <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
-      {/* Header with Brand Strip Behind Title */}
-      <div className="relative">
-        <div className="absolute inset-0 h-12 bg-brand" />
-        <div className="relative px-4 py-3 flex items-center gap-3">
-          <FaTrophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-          <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
-            COMMUNITY GOAL
-          </h3>
-        </div>
-      </div>
+  const useHorizontal = settings?.communityGoalHorizontal === true
+  const useSemiCircle = settings?.communityGoalSemiCircle !== false
 
-      {/* Content */}
-      <div className="px-3 pt-4 pb-5">
-        <div>
-          {/* Amount - Left aligned */}
-          <div className="flex items-center justify-start gap-1">
-            <span className="text-text-body text-sm sm:text-base font-semibold">
-              ${Math.floor(current)}
-            </span>
-
-            <span className="text-text-muted text-sm sm:text-base font-semibold">
-              /
-            </span>
-
-            <span className="text-text-body text-sm sm:text-base font-semibold">
-              ${Math.floor(target)}
-            </span>
+  if (useHorizontal) {
+    return (
+      <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
+        <div className="relative">
+          <div className="absolute inset-0 h-12 bg-brand" />
+          <div className="relative px-4 py-3 flex items-center gap-3">
+            <FaTrophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
+              COMMUNITY GOAL
+            </h3>
           </div>
+        </div>
 
-          {/* Progress Bar - Animated diagonal stripes */}
-          <div className="mt-4">
-            <div
-              className="relative w-full h-8 rounded-full overflow-hidden"
-              style={{
-                background: 'var(--color-pageBg)',
-                border: '2px solid var(--color-border)',
-                boxSizing: 'border-box',
-              }}
-            >
+        <div className="px-3 pt-4 pb-5">
+          <div>
+            <div className="flex items-center justify-start gap-1">
+              <span className="text-text-body text-sm sm:text-base font-semibold">
+                ${Math.floor(current)}
+              </span>
+              <span className="text-text-muted text-sm sm:text-base font-semibold">/</span>
+              <span className="text-text-body text-sm sm:text-base font-semibold">
+                ${Math.floor(target)}
+              </span>
+            </div>
+
+            <div className="mt-4">
               <div
-                className="absolute left-0 top-0 h-full rounded-full overflow-hidden"
+                className="relative w-full h-8 rounded-full overflow-hidden"
                 style={{
-                  width: `${percentage}%`,
-                  background: `
-                    repeating-linear-gradient(
-                      45deg,
-                      var(--color-brand) 0px,
-                      var(--color-brand) 12px,
-                      var(--color-text-heading) 12px,
-                      var(--color-text-heading) 24px,
-                      var(--color-brand) 24px,
-                      var(--color-brand) 36px,
-                      var(--color-text-heading) 36px,
-                      var(--color-text-heading) 48px,
-                      var(--color-brand) 48px,
-                      var(--color-brand) 60px,
-                      var(--color-text-heading) 60px,
-                      var(--color-text-heading) 72px,
-                      var(--color-brand) 72px,
-                      var(--color-brand) 84px,
-                      var(--color-text-heading) 84px,
-                      var(--color-text-heading) 96px
-                    )
-                  `,
-                  backgroundSize: '136px 136px',
-                  animation: 'slide 4s linear infinite',
-                  boxShadow:
-                    'inset 0 0.05em 0.05em rgba(255,255,255,0.35)',
+                  background: 'var(--color-pageBg)',
+                  border: '2px solid var(--color-border)',
+                  boxSizing: 'border-box',
                 }}
-              />
+              >
+                <div
+                  className="absolute left-0 top-0 h-full rounded-full overflow-hidden"
+                  style={{
+                    width: `${percentage}%`,
+                    background: `var(--color-brand)`,
+                    boxShadow: 'inset 0 0.05em 0.05em rgba(255,255,255,0.35)',
+                  }}
+                />
+              </div>
             </div>
           </div>
         </div>
       </div>
+    )
+  }
 
-      <style jsx>{`
-        @keyframes slide {
-          0% {
-            background-position: 0 0;
-          }
+  if (useSemiCircle) {
+    const radius = 92
+    const circumference = Math.PI * radius
+    const progressOffset = circumference - (percentage / 100) * circumference
 
-          100% {
-            background-position: 136px 0;
+    return (
+      <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
+        <div className="relative">
+          <div className="absolute inset-0 h-12 bg-brand" />
+          <div className="relative px-4 py-3 flex items-center gap-3">
+            <FaTrophy className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <h3 className="text-sm sm:text-base font-semibold text-white uppercase tracking-wider">
+              COMMUNITY GOAL
+            </h3>
+          </div>
+        </div>
+
+        <div className="relative px-4 pt-4 pb-2">
+          <div className="flex justify-center mt-1">
+            <div className="relative w-[220px] h-[128px]">
+              <svg
+                viewBox="0 0 220 128"
+                className="absolute inset-0 w-full h-full overflow-visible"
+                aria-label={`${Math.floor(percentage)}% community goal progress`}
+              >
+                <path
+                  d="M 18 108 A 92 92 0 0 1 202 108"
+                  fill="none"
+                  stroke="var(--color-pageBg)"
+                  strokeWidth="24"
+                  strokeLinecap="round"
+                />
+
+                <path
+                  d="M 18 108 A 92 92 0 0 1 202 108"
+                  fill="none"
+                  stroke="var(--color-brand)"
+                  strokeWidth="24"
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={progressOffset}
+                  pathLength={circumference}
+                  className="community-goal-progress"
+                  style={{
+                    transition: 'stroke-dashoffset 1s ease-out',
+                  }}
+                />
+              </svg>
+
+              <div className="absolute inset-x-0 bottom-[7px] flex items-center justify-center gap-1">
+                <span className="text-text-body text-lg sm:text-xl font-semibold">
+                  ${Math.floor(current)}
+                </span>
+                <span className="text-text-muted text-lg sm:text-xl font-semibold">/</span>
+                <span className="text-text-body text-lg sm:text-xl font-semibold">
+                  ${Math.floor(target)}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <style jsx>{`
+          @media (prefers-reduced-motion: reduce) {
+            .community-goal-progress {
+              transition: none !important;
+            }
           }
-        }
-      `}</style>
-    </div>
-  )
+        `}</style>
+      </div>
+    )
+  }
+
+  return null
 }

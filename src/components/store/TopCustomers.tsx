@@ -36,7 +36,6 @@ export function TopCustomers() {
     fetchTopCustomer()
   }, [])
 
-  // Reserve the card's expected height while Tebex data is loading.
   if (loading) {
     return (
       <div
@@ -46,14 +45,12 @@ export function TopCustomers() {
     )
   }
 
-  // Tebex has no top_customer module.
   if (!customer) {
     return null
   }
 
   return (
     <div className="bg-cardBg shadow-lg overflow-hidden rounded-md">
-      {/* Header with Brand Strip Behind Title */}
       <div className="relative">
         <div className="absolute inset-0 h-12 bg-brand" />
         <div className="relative px-4 py-3 flex items-center gap-3">
@@ -64,21 +61,17 @@ export function TopCustomers() {
         </div>
       </div>
 
-      <div className="px-3 pb-3">
-        {/* Inner Customer Card */}
+      <div className="px-3 pt-4 pb-3">
         <div className="relative h-[125px] rounded-md bg-pageBg overflow-hidden">
-          {/* Customer Information */}
           <div className="absolute left-[110px] top-1/2 -translate-y-1/2 z-10 min-w-0 pr-3">
             <p className="text-text-body font-bold text-base sm:text-lg truncate">
               {customer.username}
             </p>
-
             <p className="text-text-muted text-xs sm:text-sm mt-0.5">
               Paid the most this week
             </p>
           </div>
 
-          {/* Minecraft Character */}
           <div className="absolute left-0 bottom-0 w-[100px] h-[145px] overflow-hidden pointer-events-none">
             <img
               src={`https://api.mineatar.io/body/full/${customer.username_id}?scale=6&overlay=true`}

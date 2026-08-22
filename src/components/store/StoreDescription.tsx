@@ -1,16 +1,39 @@
-
 'use client'
 
 interface StoreDescriptionProps {
   description: string
+  loading?: boolean
 }
 
-export function StoreDescription({ description }: StoreDescriptionProps) {
-  const isLoading = !description
+export function StoreDescription({
+  description,
+  loading = false,
+}: StoreDescriptionProps) {
+  if (loading) {
+    return (
+      <div
+        aria-hidden="true"
+        className="
+          bg-cardBg
+          shadow-lg
+          rounded-md
+          relative
+          z-10
+          min-h-[140px]
+          sm:min-h-[160px]
+          md:min-h-[180px]
+        "
+      />
+    )
+  }
+
+  if (!description) {
+    return null
+  }
 
   return (
     <div
-      className={`
+      className="
         bg-cardBg
         p-6 sm:p-8
         shadow-lg
@@ -20,7 +43,7 @@ export function StoreDescription({ description }: StoreDescriptionProps) {
         min-h-[140px]
         sm:min-h-[160px]
         md:min-h-[180px]
-      `}
+      "
     >
       <div
         className="
@@ -68,17 +91,6 @@ export function StoreDescription({ description }: StoreDescriptionProps) {
           __html: description,
         }}
       />
-
-      {/* Preserve card height while description is loading */}
-      {isLoading && (
-        <div
-          aria-hidden="true"
-          className="min-h-[60px] sm:min-h-[70px] md:min-h-[80px]"
-        >
-          &nbsp;
-        </div>
-      )}
     </div>
   )
 }
-

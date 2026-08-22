@@ -5,9 +5,6 @@ import './globals.css'
 import settingsData from '@/data/settings.json'
 
 import Providers from '@/components/providers/Providers'
-import { StoreHeader } from '@/components/layout/StoreHeader'
-import { StoreHero } from '@/components/layout/StoreHero'
-import { StoreFooter } from '@/components/layout/StoreFooter'
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -18,8 +15,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: settingsData.siteName,
-  description:
-    'Complete website and store solution for Minecraft servers powered by Tebex.',
+  description: settingsData.siteDescription,
 }
 
 export default function RootLayout({
@@ -33,18 +29,9 @@ export default function RootLayout({
       className={plusJakartaSans.variable}
       suppressHydrationWarning
     >
-      <head>
-        <title>{settingsData.siteName}</title>
-      </head>
-
       <body className="antialiased bg-pageBg text-text-body">
         <Providers>
-          <StoreHeader />
-          <StoreHero />
-
           {children}
-
-          <StoreFooter />
         </Providers>
       </body>
     </html>

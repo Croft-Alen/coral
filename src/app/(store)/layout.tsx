@@ -1,7 +1,20 @@
+import { StoreHeader } from '@/components/layout/StoreHeader'
+import { StoreHero } from '@/components/layout/StoreHero'
+import { StoreFooter } from '@/components/layout/StoreFooter'
+
 export default function StoreLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children
+  return (
+    <>
+      <StoreHeader />
+      <StoreHero />
+
+      {children}
+
+      <StoreFooter />
+    </>
+  )
 }

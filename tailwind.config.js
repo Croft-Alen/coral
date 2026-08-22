@@ -9,19 +9,16 @@ module.exports = {
     extend: {
       colors: {
         brand: 'var(--color-brand)',
-        brandLight: 'var(--color-brand-light)',
-        brandDark: 'var(--color-brand-dark)',
-        pageBg: 'var(--color-page-bg)',
-        cardBg: 'var(--color-card-bg)',
+        pageBg: 'var(--color-pageBg)',
+        cardBg: 'var(--color-cardBg)',
         textHeading: 'var(--color-text-heading)',
         textBody: 'var(--color-text-body)',
         textMuted: 'var(--color-text-muted)',
+        border: 'var(--color-border)',
       },
-      // ... your other theme extensions
     },
   },
   plugins: [
     require('@tailwindcss/typography'),
-    // ... any other plugins you have
   ],
 }

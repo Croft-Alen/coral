@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { notFound } from 'next/navigation'
 import { getTebexServerClient } from '@/lib/tebex/client'
 import settingsData from '@/data/settings.json'
 import CategoryPageClient from './CategoryPageClient'
@@ -55,6 +56,12 @@ export default async function CategoryPage({
   params,
 }: CategoryPageProps) {
   const { category } = await params
+
+  const categoryData = await getCategoryBySlug(category)
+
+  if (!categoryData) {
+    notFound()
+  }
 
   return (
     <CategoryPageClient categoryId={category} />
